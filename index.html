@@ -125,6 +125,10 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .mc.empty{background:transparent}.mc.fut{opacity:.4}
 .mc.full{color:var(--surface)}
 .mc.today{outline:2px solid var(--accent);outline-offset:1px}
+.seg.mini2{display:inline-flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;text-transform:none;letter-spacing:0}
+.seg.mini2 button{border:0;border-radius:0;padding:5px 12px;font-size:13px;background:transparent;color:var(--muted)}
+.seg.mini2 button.on{background:var(--accent);color:var(--accent-ink)}
+.okc{color:var(--ok)!important}
 .dslot{padding:8px 0;border-top:1px solid var(--line)}.dslot:first-of-type{border-top:0}
 .dhead{display:flex;justify-content:space-between;font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;margin-bottom:4px}
 .dhead b{font-family:var(--f-num);font-size:15px;color:var(--ink);letter-spacing:0;text-transform:none}
@@ -548,6 +552,7 @@ function vInicio(){
       <div class="tank" id="tank"><div class="tfill" id="tfill" style="width:${wp}%"></div></div>
       <div id="wreset" class="wreset">${wResetBtn(d.water)}</div>
     </section>
+    ${homeChecklist()}
     <section class="card"><h2>Hoy <button class="act" data-act="tab" data-v="hoy">Ver el día</button></h2>
       <div class="today-mini">
         <div class="stat"><div class="v">${fmt(Math.max(0,g.kcal-t.kcal))}</div><div class="k">kcal restantes</div></div>
@@ -556,6 +561,20 @@ function vInicio(){
       </div></section>`;
 }
 function wResetBtn(w){return `<button class="resetbtn" data-act="wReset" ${w?'':'disabled'}>↺ Resetear agua de hoy</button>`}
+function homeChecklist(){
+  const isY=S.homeDay==='ayer',k=isY?addDays(today(),-1):today(),d=day(k),g=S.goals,pr=progress(k);
+  const wOk=d.water>=g.water;
+  let h=`<section class="card"><h2><span>Checklist</span><span class="seg mini2"><button data-act="homeDay" data-v="hoy" class="${isY?'':'on'}">Hoy</button><button data-act="homeDay" data-v="ayer" class="${isY?'on':''}">Ayer</button></span></h2>
+    <div class="tankrow" style="margin:-2px 0 6px"><span>${isY?'Ayer · '+parse(k).toLocaleDateString('es-ES',{weekday:'long',day:'numeric'}):'Lo que llevas hoy'}</span><b class="${pr.done===pr.total?'okc':''}">${pr.done}/${pr.total}</b></div>`;
+  h+=`<div class="chk ${wOk?'done':''}"><span class="box ${wOk?'on':''}" aria-hidden="true">${wOk?TICK:''}</span>
+    <div class="t"><span>Agua ${fmt1(g.water/1000)} L</span><small>${fmt1(d.water/1000)} L ${isY?'bebidos':'· usa la barra de arriba'}</small>
+    ${isY?`<div class="mini"><button class="mbtn" data-act="water" data-k="${k}" data-v="-250">−250</button><button class="mbtn pri" data-act="water" data-k="${k}" data-v="250">+250 ml</button><button class="mbtn pri" data-act="water" data-k="${k}" data-v="500">+500 ml</button></div>`:''}</div></div>`;
+  itemsFor(k).forEach(c=>{const on=!!d.checks[c.id];
+    h+=`<div class="chk ${on?'done':''}"><button class="box ${on?'on':''}" data-act="chk" data-k="${k}" data-id="${c.id}" aria-pressed="${on}" aria-label="${esc(c.label)}">${on?TICK:''}</button>
+      <div class="t"><span>${esc(c.label)}</span>${c.note?`<small>${esc(c.note)}</small>`:''}
+      ${c.weigh?`<div class="mini"><input class="winput" inputmode="decimal" placeholder="kg" value="${d.weight!=null?fmt1(d.weight):''}" data-chg="weight" data-k="${k}" aria-label="Peso en kg"></div>`:''}</div></div>`});
+  return h+`</section>`;
+}
 const RM=matchMedia('(prefers-reduced-motion: reduce)');
 function bindWater(){
   const g=document.getElementById('glass');if(!g)return;
@@ -1201,8 +1220,9 @@ const A={
   next:()=>{if(S.date<today()){S.date=addDays(S.date,1);render()}},
   today:(t,e)=>{e.preventDefault();S.date=today();render()},
   close:closeSheet,
-  water:t=>updDay(d=>{d.water=Math.max(0,(d.water||0)+Number(t.dataset.v))}),
-  chk:t=>updDay(d=>{const id=t.dataset.id;if(d.checks[id])delete d.checks[id];else d.checks[id]=true}),
+  water:t=>updDay(d=>{d.water=Math.max(0,(d.water||0)+Number(t.dataset.v))},t.dataset.k||S.date),
+  homeDay:t=>{S.homeDay=t.dataset.v;render()},
+  chk:t=>updDay(d=>{const id=t.dataset.id;if(d.checks[id])delete d.checks[id];else d.checks[id]=true},t.dataset.k||S.date),
   addFood:t=>{const f=S.foods.find(x=>x.id===t.dataset.id);if(!f)return;if(f.kcal==null)openFoodEdit(f.id,true);else openQty(f)},
   q:t=>{sheetCtx.qty=Number(t.dataset.v);document.querySelectorAll('#qseg button').forEach(b=>b.classList.toggle('on',b===t))},
   qtyAdd:()=>{const {food:f,qty}=sheetCtx;const slot=val('qslot'),g=num(val('qg'));closeSheet();
@@ -1252,7 +1272,7 @@ document.addEventListener('change',e=>{
     document.getElementById(t.id==='phIn'?'phZone':'scZone').innerHTML=zoneHtml(fs);return}
   if(!t.dataset||!t.dataset.chg)return;
   if(t.dataset.chg==='steps'){const v=Math.max(0,Math.round(num(t.value)||0));updDay(d=>{d.steps=v})}
-  if(t.dataset.chg==='weight'){const v=num(t.value);updDay(d=>{d.weight=v&&v>30&&v<400?v:null;const c=S.checklist.find(x=>x.weigh);if(c){if(d.weight!=null)d.checks[c.id]=true}});if(v)toast('Peso guardado')}
+  if(t.dataset.chg==='weight'){const v=num(t.value);updDay(d=>{d.weight=v&&v>30&&v<400?v:null;const c=S.checklist.find(x=>x.weigh);if(c){if(d.weight!=null)d.checks[c.id]=true}},t.dataset.k||S.date);if(v)toast('Peso guardado')}
 });
 document.addEventListener('input',e=>{const t=e.target;
   if(t.id==='fq'){S.fq=t.value;const g=document.getElementById('fgrid');if(g)g.innerHTML=gridHtml();document.querySelectorAll('.chips button').forEach(b=>b.classList.toggle('on',!S.fq&&b.dataset.v===S.fcat))}
