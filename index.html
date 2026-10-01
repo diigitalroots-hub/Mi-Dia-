@@ -20,17 +20,17 @@
 /* Layout: una columna tipo app móvil, cabecera con fecha, tarjetas por bloque y barra de pestañas fija abajo */
 :root{
   --bg:#EDF1F4; --surface:#FFFFFF; --ink:#142230; --muted:#5D6B78; --line:#D7DEE5; --chip:#E3E9EF;
-  --accent:#2450E6; --accent-ink:#FFFFFF; --prot:#C9741F; --fib:#2F8F5B; --water:#1A8DB3; --warn:#C6452F; --ok:#2F8F5B;
+  --accent:#2450E6; --accent-ink:#FFFFFF; --prot:#C9741F; --fib:#2F8F5B; --water:#1A8DB3; --warn:#C6452F; --ok:#2F8F5B; --low:#E0A800;
   --f-num:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
   --r:14px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0E151C; --surface:#17212B; --ink:#E7EDF2; --muted:#8C9AA7; --line:#26323E; --chip:#1F2A35;
-  --accent:#7090FF; --accent-ink:#0E151C; --prot:#F0A04B; --fib:#4FBF80; --water:#4EC3E6; --warn:#FF7A63; --ok:#4FBF80; color-scheme:dark}}
+  --accent:#7090FF; --accent-ink:#0E151C; --prot:#F0A04B; --fib:#4FBF80; --water:#4EC3E6; --warn:#FF7A63; --ok:#4FBF80; --low:#F2C14E; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0E151C; --surface:#17212B; --ink:#E7EDF2; --muted:#8C9AA7; --line:#26323E; --chip:#1F2A35;
-  --accent:#7090FF; --accent-ink:#0E151C; --prot:#F0A04B; --fib:#4FBF80; --water:#4EC3E6; --warn:#FF7A63; --ok:#4FBF80; color-scheme:dark}
+  --accent:#7090FF; --accent-ink:#0E151C; --prot:#F0A04B; --fib:#4FBF80; --water:#4EC3E6; --warn:#FF7A63; --ok:#4FBF80; --low:#F2C14E; color-scheme:dark}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font-size:14px;padding-top:env(safe-area-inset-top,0px);min-height:100vh}
@@ -118,7 +118,21 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .chart .grid line{stroke:var(--line)}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-.heat{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;margin-top:4px}
+.heat{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:4px}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.mh{text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding-bottom:2px}
+.mc{aspect-ratio:1;border-radius:8px;background:var(--chip);display:grid;place-items:center;font-family:var(--f-num);font-size:15px;font-weight:600;max-width:100%}
+.mc.empty{background:transparent}.mc.fut{opacity:.4}
+.mc.full{color:var(--surface)}
+.mc.today{outline:2px solid var(--accent);outline-offset:1px}
+.dslot{padding:8px 0;border-top:1px solid var(--line)}.dslot:first-of-type{border-top:0}
+.dhead{display:flex;justify-content:space-between;font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;margin-bottom:4px}
+.dhead b{font-family:var(--f-num);font-size:15px;color:var(--ink);letter-spacing:0;text-transform:none}
+.dline{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:2px 0}
+.dline span:first-child{min-width:0}.dline small{color:var(--muted)}
+.dline .num{font-size:15px;white-space:nowrap}
+.dtotal{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--line);margin-top:6px;padding-top:10px;font-weight:600}
+.dtotal b{font-family:var(--f-num);font-size:22px}
 .heat div{aspect-ratio:1;border-radius:5px;background:var(--chip);max-width:100%}
 .kv{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 .kv:first-of-type{border-top:0}
@@ -507,13 +521,18 @@ function vInicio(){
   const wts=Object.keys(S.days).filter(k=>S.days[k]&&S.days[k].weight!=null).sort();
   let lost='';if(wts.length>1){const df=S.days[wts[0]].weight-S.days[wts[wts.length-1]].weight;lost=`<div class="wkmeta">${df>=0?'Llevas':'Diferencia'}<b>${df>=0?'−':'+'}${fmt1(Math.abs(df))} kg</b></div>`}
   let mon=addDays(tk,-dow);
-  const strip=DOW.map(([n,l],i)=>{const k=addDays(mon,i),fut=k>tk,p=progress(k),r=S.days[k]&&!fut?p.done/p.total:0;
-    return `<div class="dd ${k===tk?'today':''} ${fut?'fut':''}">${l}<div class="dot" style="${r?`background:color-mix(in srgb, var(--ok) ${Math.round(20+r*80)}%, var(--chip));color:${r>.6?'var(--surface)':'var(--ink)'}`:''}">${parse(k).getDate()}</div></div>`}).join('');
+  const lo=g.kcal-100,hi=g.kcal+100;
+  const strip=DOW.map(([n,l],i)=>{const k=addDays(mon,i),fut=k>tk,kc=fut?0:totals(day(k)).kcal;
+    const st=!kc?'':kc<lo?'low':kc>hi?'over':'ok';
+    const bg={ok:'var(--ok)',low:'var(--low)',over:'var(--warn)'}[st];
+    const tip=kc?`${fmt(kc)} kcal`:'sin registro';
+    return `<div class="dd ${k===tk?'today':''} ${fut?'fut':''}" title="${tip}">${l}<div class="dot" style="${st?`background:${bg};color:${st==='low'?'#1b1b1b':'var(--surface)'}`:''}">${parse(k).getDate()}</div></div>`}).join('');
   const q=QUOTES[S.quote.i];
   const wp=Math.min(100,d.water/g.water*100);
   return `<section class="hello"><div class="greet">${greet}</div>
     <div class="wkrow"><div class="wkn">Semana ${wk}<small>día ${dow+1}/7</small></div>${lost}</div>
-    <div class="strip" aria-label="Checklist de esta semana">${strip}</div></section>
+    <div class="strip" aria-label="Calorías de esta semana">${strip}</div>
+    <div class="legend" style="margin-top:8px"><span><i style="background:var(--ok)"></i>${fmt(lo)}–${fmt(hi)} kcal</span><span><i style="background:var(--low)"></i>Menos</span><span><i style="background:var(--warn)"></i>Más</span></div></section>
     ${S.loaded&&!Object.keys(S.days).length?`<section class="card" style="border:2px dashed var(--accent)"><h2>Bienvenido</h2><p class="note" style="margin-top:0">¿Vienes de la app de Claude? Importa tu copia de seguridad para recuperar tu historial y tus alimentos.</p><div class="btnrow"><button class="btn pri" data-act="goImport">Importar copia</button></div></section>`:''}
     <blockquote class="quote"><button class="qnext" data-act="qnext" aria-label="Otra frase">otra ↻</button><span class="qm" aria-hidden="true">“</span><p>${esc(q.t)}</p><cite>${esc(q.a)}</cite></blockquote>
     <div class="actions">
@@ -808,6 +827,17 @@ function bar(label,val,goal,color,unit,dec){
 }
 
 function macroLine(t){return `Calorías: ${fmt(t.kcal)} kcal | Proteína: ${fmt(t.p)} g | Hidratos: ${fmt(t.hc)} g | Grasas: ${fmt(t.gr)} g | Fibra: ${fmt(t.fib)} g`}
+function dietario(d,t){
+  let h=`<section class="card"><h2>Dietario <button class="act" data-act="tab" data-v="comida">+ Añadir</button></h2>`;
+  if(!d.meals.length)return h+`<p class="empty">Todavía no hay comidas este día.</p></section>`;
+  [...SLOTS,'Importado'].forEach(s=>{
+    const ms=d.meals.filter(m=>m.slot===s||(s==='Importado'&&!SLOTS.includes(m.slot)));if(!ms.length)return;
+    const st=totals({meals:ms});
+    h+=`<div class="dslot"><div class="dhead"><span>${s}</span><b>${fmt(st.kcal)} kcal</b></div>`+
+      ms.map(m=>`<div class="dline"><span>${esc(m.name)}${m.grams?` <small>${fmt(m.grams)} g</small>`:m.qty&&m.qty!==1?` <small>×${fmt1(m.qty).replace(',0','')}</small>`:''}</span><span class="num">${fmt(m.kcal)}</span></div>`).join('')+`</div>`;
+  });
+  return h+`<div class="dtotal"><span>Total del día</span><b>${fmt(t.kcal)} kcal</b></div><p class="macro" style="margin-top:4px">${fmt(t.p)} P · ${fmt(t.hc)} HC · ${fmt(t.gr)} G · ${fmt(t.fib)} F</p></section>`;
+}
 function vHoy(){
   const d=day(), t=totals(d), g=S.goals;
   const left=g.kcal-t.kcal, pct=Math.min(1,t.kcal/g.kcal), C=2*Math.PI*56;
@@ -830,6 +860,7 @@ function vHoy(){
       <div class="stat"><div class="v">${fmt(d.steps)}</div><div class="k">Pasos</div></div>
       <div class="stat"><div class="v">${fmt(burned(d))}</div><div class="k">Kcal deporte</div></div>
     </div></section>`;
+  h+=dietario(d,t);
   h+=`<section class="card"><h2>¿Cómo va el día? <button class="act" data-act="howDay">${S.howTxt&&S.howDate===S.date?'Actualizar':'Preguntar a la IA'}</button></h2>
     <div id="howOut">${S.howTxt&&S.howDate===S.date?`<p class="advice">${esc(S.howTxt)}</p>`:'<p class="empty">Te resume lo que llevas y qué te conviene comer después.</p>'}</div></section>`;
   h+=`<section class="card"><h2>Checklist del día <span class="pill ${pr.done===pr.total?'full':''}">${pr.done}/${pr.total}</span></h2>`;
@@ -1004,6 +1035,28 @@ function bkApply(){
   let n=0;Object.entries(d.days||{}).forEach(([k,v])=>{if(/^\d{4}-\d{2}-\d{2}$/.test(k)&&v&&typeof v==='object'){S.days[k]={...blank(),...v};save('days/'+k,S.days[k]);n++}});
   render();toast(`Copia restaurada: ${n} días`);
 }
+function monthStreak(){
+  const base=parse(S.date),y=base.getFullYear(),mo=base.getMonth(),tk=today();
+  const first=key(new Date(y,mo,1)),nd=new Date(y,mo+1,0).getDate();
+  const full=k=>{if(!S.days[k])return false;const p=progress(k);return p.done===p.total};
+  // racha actual dentro del mes: días seguidos completos hasta hoy (o ayer si hoy aún no está completo)
+  let streak=0,k=tk<key(new Date(y,mo,nd))?tk:key(new Date(y,mo,nd));
+  if(k.slice(0,7)!==first.slice(0,7))k=key(new Date(y,mo,nd));
+  if(!full(k))k=addDays(k,-1);
+  while(k>=first&&full(k)){streak++;k=addDays(k,-1)}
+  let done=0;for(let d=1;d<=nd;d++){if(full(key(new Date(y,mo,d))))done++}
+  const lead=(new Date(y,mo,1).getDay()+6)%7;
+  const title=base.toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+  let cells='';for(let i=0;i<lead;i++)cells+='<div class="mc empty"></div>';
+  for(let d=1;d<=nd;d++){const kk=key(new Date(y,mo,d)),fut=kk>tk,p=progress(kk),has=!!S.days[kk]&&!fut;
+    const r=has?p.done/p.total:0,cls=fut?'fut':has&&r===1?'full':has&&r>0?'part':'';
+    const bg=cls==='full'?'var(--ok)':cls==='part'?`color-mix(in srgb, var(--ok) ${Math.round(20+r*50)}%, var(--chip))`:'';
+    cells+=`<div class="mc ${cls} ${kk===tk?'today':''}" title="${kk}: ${has?p.done+'/'+p.total:'sin datos'}" ${bg?`style="background:${bg}"`:''}>${d}</div>`}
+  return `<section class="card"><h2><span style="text-transform:none;letter-spacing:0;font-size:15px;color:var(--ink)">Racha de ${esc(title)}</span><span class="pill ${streak?'full':''}">${streak} ${streak===1?'día':'días'} seguidos</span></h2>
+    <div class="mgrid">${['L','M','X','J','V','S','D'].map(l=>`<div class="mh">${l}</div>`).join('')}${cells}</div>
+    <div class="avg"><span>Días con la checklist completa</span><b>${done} / ${nd}</b></div>
+    <div class="legend"><span><i style="background:var(--ok)"></i>Completa</span><span><i style="background:color-mix(in srgb, var(--ok) 40%, var(--chip))"></i>A medias</span><span>Se reinicia cada día 1</span></div></section>`;
+}
 function vProgreso(){
   const pts=Object.keys(S.days).filter(k=>S.days[k]&&S.days[k].weight!=null).sort();
   let wInfo='';
@@ -1011,11 +1064,8 @@ function vProgreso(){
     wInfo=`<span class="pill ${b<a?'full':''}">${b<=a?'−':'+'}${fmt1(Math.abs(b-a))} kg</span>`}
   let h=`<section class="card"><h2>Peso (lunes) ${wInfo}</h2>${weightChart()}</section>`;
   h+=`<section class="card"><h2>Kcal · últimos 14 días</h2>${kcalChart()}</section>`;
-  // checklist heat + racha
-  const ks=[...Array(14)].map((_,i)=>addDays(S.date,i-13));
-  let streak=0;{let k=today();const p=progress(k);if(p.done<p.total)k=addDays(k,-1);while(true){const q=progress(k);if(q.done===q.total&&S.days[k]){streak++;k=addDays(k,-1)}else break;if(streak>999)break}}
-  h+=`<section class="card"><h2>Checklist · 14 días <span class="pill ${streak?'full':''}">racha ${streak} ${streak===1?'día':'días'}</span></h2>
-    <div class="heat">${ks.map(k=>{const p=progress(k);const r=S.days[k]?p.done/p.total:0;return `<div title="${k}: ${p.done}/${p.total}" style="background:${r?`color-mix(in srgb, var(--ok) ${Math.round(25+r*75)}%, var(--chip))`:'var(--chip)'}"></div>`}).join('')}</div></section>`;
+  // racha del mes: se reinicia cada día 1
+  h+=monthStreak();
   const g=S.goals;
   h+=`<section class="card"><h2>Objetivos <button class="act" data-act="goals">Editar</button></h2>
     <div class="kv"><span>Kcal</span><b>${fmt(g.kcal)}</b></div><div class="kv"><span>Proteína</span><b>${fmt(g.p)} g</b></div>
