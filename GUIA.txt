@@ -1,0 +1,41 @@
+MI DÍA A DÍA · PUESTA EN MARCHA (unos 20 minutos)
+
+0. Antes de empezar
+   En la app actual (la de Claude): Progreso → Copia de seguridad → Descargar copia.
+   Guarda el archivo midia-copia-AAAA-MM-DD.json en Archivos o iCloud.
+
+1. Base de datos (Supabase, gratis)
+   1. Entra en supabase.com → Start your project → crea cuenta.
+   2. New project → nombre "mi-dia", pon una contraseña de base de datos (guárdala),
+      región "Central EU (Frankfurt)" → Create.
+   3. Menú izquierdo → SQL Editor → New query → pega TODO el archivo supabase-setup.sql → Run.
+   4. Authentication → Users → Add user → Create new user: tu email y una contraseña,
+      marca "Auto Confirm User" → Create.
+   5. Authentication → Sign In / Providers (o Settings) → desactiva "Allow new users to sign up"
+      → Save. Así nadie más puede crearse una cuenta.
+   6. Project Settings → API (o "Data API" / "API Keys"): copia el "Project URL" y la clave
+      pública "anon" o "publishable" (NUNCA la "service_role" / "secret").
+
+2. Publicar la app (Netlify, gratis) — desde un ordenador
+   1. Descomprime el zip: tendrás la carpeta "mi-dia".
+   2. Entra en app.netlify.com/drop (crea cuenta si te la pide).
+   3. Arrastra la carpeta "mi-dia" a la página. En unos segundos te da una dirección
+      tipo https://algo-123.netlify.app
+   4. Opcional: Site configuration → Change site name → por ejemplo "midia-ruben".
+
+3. Clave de la IA (Anthropic, pago por uso)
+   1. Entra en console.anthropic.com → crea cuenta.
+   2. Billing → añade saldo (mínimo 5 $). En Limits pon un límite mensual, p. ej. 5 $.
+   3. API Keys → Create Key → nombre "mi-dia" → copia la clave (empieza por sk-ant-).
+      Solo se muestra una vez.
+
+4. Instalar en el iPhone
+   1. Abre la dirección de Netlify en Safari.
+   2. Compartir → Añadir a pantalla de inicio → Añadir. Saldrá con tu logo.
+   3. Ábrela desde el icono: entra con tu email y contraseña de Supabase y pega
+      el Project URL y la clave pública (solo la primera vez en cada dispositivo).
+   4. Progreso → Cuenta e IA → pega la clave sk-ant- → Guardar clave → Probar.
+   5. Inicio → Importar copia → elige el archivo de copia del paso 0 → Sí, restaurar.
+
+Para no tener que pegar el Project URL y la clave pública en cada dispositivo,
+mándaselos a Claude: los pone en config.js y vuelves a arrastrar la carpeta a Netlify.

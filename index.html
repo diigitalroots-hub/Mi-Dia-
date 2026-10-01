@@ -1,0 +1,1223 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mi Día</title>
+<meta name="theme-color" content="#2450E6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi Día">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: una columna tipo app móvil, cabecera con fecha, tarjetas por bloque y barra de pestañas fija abajo */
+:root{
+  --bg:#EDF1F4; --surface:#FFFFFF; --ink:#142230; --muted:#5D6B78; --line:#D7DEE5; --chip:#E3E9EF;
+  --accent:#2450E6; --accent-ink:#FFFFFF; --prot:#C9741F; --fib:#2F8F5B; --water:#1A8DB3; --warn:#C6452F; --ok:#2F8F5B;
+  --f-num:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E151C; --surface:#17212B; --ink:#E7EDF2; --muted:#8C9AA7; --line:#26323E; --chip:#1F2A35;
+  --accent:#7090FF; --accent-ink:#0E151C; --prot:#F0A04B; --fib:#4FBF80; --water:#4EC3E6; --warn:#FF7A63; --ok:#4FBF80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E151C; --surface:#17212B; --ink:#E7EDF2; --muted:#8C9AA7; --line:#26323E; --chip:#1F2A35;
+  --accent:#7090FF; --accent-ink:#0E151C; --prot:#F0A04B; --fib:#4FBF80; --water:#4EC3E6; --warn:#FF7A63; --ok:#4FBF80; color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-size:14px;padding-top:env(safe-area-inset-top,0px);min-height:100vh}
+img{max-width:100%}[hidden]{display:none!important}
+#login{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;padding:calc(24px + env(safe-area-inset-top,0px)) 16px 24px}
+.lg{max-width:420px;margin:0 auto}
+.lg h1{font-family:var(--f-num);font-size:34px;margin:8px 0 2px}
+.lgicon{width:72px;height:72px;border-radius:16px;display:block}
+#login .field input{background:var(--surface)}
+input,select,textarea{font-size:16px!important}
+details{margin-bottom:12px}summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;margin-bottom:10px}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:8px calc(96px + env(safe-area-inset-bottom,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px 8px;display:flex;align-items:center;gap:8px}
+.datebox{flex:1;min-width:0;text-align:center}
+.datebox .d{font-family:var(--f-num);font-weight:700;font-size:26px;letter-spacing:.01em;text-transform:capitalize;line-height:1.05}
+.datebox .s{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.iconbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:18px;flex:none}
+.iconbtn[disabled]{opacity:.35;cursor:default}
+.card{background:var(--surface);border-radius:var(--r);padding:16px;margin-top:12px}
+.card h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h2 .act{font-size:13px;letter-spacing:0;text-transform:none;color:var(--accent);background:none;border:0;padding:4px 0;font-weight:600}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+/* resumen */
+.hero{display:flex;gap:16px;align-items:center}
+.ring{position:relative;width:132px;height:132px;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring .big{font-family:var(--f-num);font-weight:700;font-size:34px;line-height:1}
+.ring .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.bars{flex:1;min-width:0;display:grid;gap:10px}
+.bar .row{display:flex;justify-content:space-between;font-size:13px;gap:6px}
+.bar .row b{font-family:var(--f-num);font-size:16px;font-weight:600}
+.bar .row span{color:var(--muted)}
+.track{height:8px;border-radius:4px;background:var(--chip);overflow:hidden;margin-top:3px}
+.fill{height:100%;border-radius:4px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.stat .v{font-family:var(--f-num);font-size:22px;font-weight:600;line-height:1.1}
+.stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+/* checklist */
+.chk{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.chk:first-of-type{border-top:0}
+.box{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);background:transparent;flex:none;display:grid;place-items:center;padding:0}
+.box.on{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.box svg{width:15px;height:15px}
+.chk .t{flex:1;min-width:0}
+.chk .t small{display:block;color:var(--muted);font-size:12px}
+.chk.done .t>span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.pill{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.pill.full{background:var(--ok);color:var(--surface)}
+.mini{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.mbtn{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 11px;font-size:13px;font-weight:600}
+.mbtn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.winput{width:96px;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-family:var(--f-num);font-size:18px}
+/* comida */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.food{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
+.food .n{font-weight:600;font-size:14px;line-height:1.25}
+.food .m{font-size:12px;color:var(--muted)}
+.food .m b{font-family:var(--f-num);font-size:14px;color:var(--ink);font-weight:600}
+.food .todo{font-size:11px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.06em}
+.slot{margin-top:12px}
+.slot h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 4px;display:flex;justify-content:space-between}
+.item{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.item .t{flex:1;min-width:0}
+.item .t small{display:block;color:var(--muted);font-size:12px}
+.item .k{font-family:var(--f-num);font-size:18px;font-weight:600;white-space:nowrap}
+.del{border:0;background:none;color:var(--muted);font-size:20px;width:32px;height:32px;border-radius:50%;flex:none}
+.del:hover{background:var(--chip);color:var(--warn)}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{flex:1;min-width:120px;border:0;border-radius:12px;padding:12px;font-weight:600;background:var(--chip)}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}
+.btn.danger{background:transparent;color:var(--warn);border:1px solid var(--line)}
+/* deporte */
+.wbig{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.wbig input{flex:1;min-width:120px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-family:var(--f-num);font-size:26px;font-weight:600}
+.tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:6px;background:var(--chip);color:var(--muted)}
+/* progreso */
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-family:var(--f-num);font-size:12px}
+.chart .grid line{stroke:var(--line)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.heat{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;margin-top:4px}
+.heat div{aspect-ratio:1;border-radius:5px;background:var(--chip);max-width:100%}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.kv:first-of-type{border-top:0}
+.kv b{font-family:var(--f-num);font-size:18px;font-weight:600}
+/* nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+nav.tabs button{border:0;background:none;padding:6px 0;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--muted)}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--accent)}
+/* hoja inferior */
+.backdrop{position:fixed;inset:0;background:rgba(8,14,20,.45);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-height:88vh;overflow:auto;background:var(--surface);border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.sheet .in{max-width:560px;margin:0 auto}
+.sheet h3{margin:0 0 12px;font-family:var(--f-num);font-size:24px;font-weight:700}
+.field{display:grid;gap:4px;margin-bottom:12px}
+.field label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.f3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 12px;font-weight:600}
+.seg button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.days{display:flex;gap:4px}
+.days button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-size:12px;font-weight:700;padding:0}
+.days button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.clrow{border-top:1px solid var(--line);padding:10px 0;display:grid;gap:8px}
+.clrow .top{display:flex;gap:8px;align-items:center}
+.clrow input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:14px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
+.search{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);margin-bottom:10px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px;scrollbar-width:none}
+.chips button{flex:none;border:1px solid var(--line);background:var(--bg);border-radius:99px;padding:6px 12px;font-size:13px;font-weight:600;white-space:nowrap}
+.chips button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+#fgrid{max-height:420px;overflow-y:auto}
+.estb{font-size:12px;color:var(--muted);font-weight:700}
+.macro{font-family:var(--f-num);font-size:14px;color:var(--muted);margin:12px 0 0;line-height:1.35;font-variant-numeric:tabular-nums}
+.advice{white-space:pre-line;margin:0;font-size:14px;line-height:1.5}
+.wreset{margin-top:12px;display:flex;justify-content:center}
+.resetbtn{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:99px;padding:7px 16px;font-size:13px;font-weight:600}
+.resetbtn:hover:not([disabled]){color:var(--warn);border-color:var(--warn)}
+.resetbtn[disabled]{opacity:.45;cursor:default}
+.warn{width:100%;border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 9%,var(--surface));border-radius:12px;padding:12px 14px;display:grid;gap:4px}
+.warn b{color:var(--warn);font-size:14px}
+.warn span{font-size:13px;color:var(--ink)}
+.warn .btnrow{margin-top:8px}
+.btn.danger-fill{background:var(--warn);color:var(--surface)}
+.chart .vl{fill:var(--ink);font-size:11px;font-weight:600}
+.chart .dn{font-size:10px}
+.avg{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:10px;font-size:13px;color:var(--muted)}
+.avg b{font-family:var(--f-num);font-size:17px;color:var(--ink)}
+.dlist{margin-top:6px}
+.drow{width:100%;display:grid;grid-template-columns:1fr auto auto 64px;align-items:baseline;gap:10px;padding:9px 2px;border:0;border-top:1px solid var(--line);background:none;text-align:left}
+.drow:first-child{border-top:0}
+.drow .dl{text-transform:capitalize;font-size:14px}
+.drow .dp{font-size:12px;color:var(--muted)}
+.drow b{font-family:var(--f-num);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.drow .dd2{font-family:var(--f-num);font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+.dd2.over{color:var(--warn)}.dd2.ok{color:var(--ok)}.dd2.under{color:var(--muted)}
+.linkbtn{display:block;margin:10px auto 0;border:0;background:none;color:var(--muted);font-size:13px;text-decoration:underline}
+.sync{font-size:11px;color:var(--muted);text-align:center;margin-top:16px}
+.toast button{margin-left:12px;border:0;background:none;color:var(--water);font-weight:700;padding:0}
+/* inicio */
+.hello{padding-block:14px 0}
+.greet{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.wkrow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:2px}
+.wkn{font-family:var(--f-num);font-weight:700;font-size:clamp(42px,13vw,60px);white-space:nowrap;min-width:0;line-height:.9;letter-spacing:-.01em}
+.wkn small{font-size:20px;color:var(--muted);font-weight:600;margin-left:6px;letter-spacing:0}
+.wkmeta{text-align:right;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.wkmeta b{display:block;font-family:var(--f-num);font-size:26px;color:var(--ok);letter-spacing:0;line-height:1}
+.strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.strip .dd{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--muted);min-width:0}
+.strip .dot{width:100%;max-width:42px;aspect-ratio:1;border-radius:10px;background:var(--chip);display:grid;place-items:center;font-family:var(--f-num);font-size:16px;font-weight:600;color:var(--ink)}
+.strip .today .dot{outline:2px solid var(--accent);outline-offset:2px}
+.strip .fut .dot{opacity:.4}
+.quote{margin:16px 0 0;padding:18px 18px 16px;background:var(--surface);border-radius:var(--r)}
+.quote .qm{font-family:var(--f-num);font-weight:700;font-size:60px;line-height:.6;height:24px;display:block;color:var(--accent)}
+.quote p{margin:0;font-size:19px;line-height:1.35;font-weight:500;text-wrap:balance}
+.quote cite{display:block;margin-top:10px;font-style:normal;font-size:13px;color:var(--muted)}
+.quote .qnext{float:right;border:0;background:none;color:var(--muted);font-size:12px;font-weight:600;padding:2px 0}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.abtn{border:0;border-radius:var(--r);padding:16px 14px;text-align:left;display:flex;flex-direction:column;gap:6px;background:var(--surface);min-width:0}
+.abtn.pri{background:var(--accent);color:var(--accent-ink)}
+.abtn svg{width:28px;height:28px;margin-bottom:4px}
+.abtn b{font-size:15px;line-height:1.2}
+.abtn span{font-size:12px;opacity:.75;line-height:1.3}
+.water{position:relative}
+.glass{position:relative;height:60px;border-radius:14px;background:var(--chip);overflow:hidden;touch-action:none;cursor:ew-resize;user-select:none;-webkit-user-select:none}
+.glass .wfill{position:absolute;top:0;bottom:0;left:0;width:0;background:linear-gradient(180deg,color-mix(in srgb,var(--water) 55%,var(--surface)),var(--water))}
+.glass .wfill::after{content:"";position:absolute;top:0;right:-1px;bottom:0;width:3px;background:var(--surface);opacity:.6}
+.glass .lab{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-weight:600;font-size:14px;pointer-events:none}
+.glass .lab b{font-family:var(--f-num);font-size:28px;font-weight:700}
+.gscale{display:flex;justify-content:space-between;font-family:var(--f-num);font-size:12px;color:var(--muted);margin-top:4px;padding:0 2px}
+.fallgap{height:46px}
+.tankrow{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted);margin-bottom:5px}
+.tankrow b{font-family:var(--f-num);font-size:20px;color:var(--ink);font-weight:600}
+.tank{position:relative;height:26px;border-radius:13px;background:var(--chip);overflow:hidden}
+.tank .tfill{position:absolute;top:0;bottom:0;left:0;background:var(--water);border-radius:13px}
+.tank .goal{position:absolute;top:0;bottom:0;width:2px;background:var(--surface);opacity:.7}
+.wdrop{position:absolute;left:0;top:0;width:11px;height:11px;background:var(--water);border-radius:0 50% 50% 50%;pointer-events:none;z-index:4;will-change:transform}
+.today-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.zone{display:grid;place-items:center;min-height:150px;border:2px dashed var(--line);border-radius:14px;background:var(--bg);color:var(--muted);font-weight:600;text-align:center;padding:12px;cursor:pointer;margin-bottom:12px;overflow:hidden}
+.zone img{max-height:220px;border-radius:10px;object-fit:cover}
+.zone .thumbs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.zone .thumbs img{max-height:140px;max-width:46%}
+.est{border-top:1px solid var(--line);padding:10px 0;display:grid;gap:6px}
+.est .top{display:flex;gap:8px;align-items:center}
+.est .top input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-weight:600}
+.est .f3 input{padding:7px 9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);width:100%}
+.est .f3 label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.conf{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:6px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.conf.baja{color:var(--warn)}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+.thinking{display:flex;align-items:center;gap:10px;color:var(--muted);padding:10px 0}
+.thinking i{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:no-preference){.fill,.ring circle{transition:width .35s ease,stroke-dashoffset .45s ease}}
+</style>
+</head>
+<body>
+<div id="login" hidden></div>
+
+
+<div class="wrap" id="app"></div>
+<nav class="tabs" aria-label="Secciones"><div class="in" id="nav"></div></nav>
+<div id="sheetHost"></div>
+<div id="toastHost"></div>
+
+<script>
+(()=>{
+const DEF_GOALS={kcal:2500,p:200,hc:245,fat:80,fib:30,water:3000,steps:10000,start:'2026-08-17'};
+const DEF_AI={rules:[],typical:[],notes:[]};
+/* franjas: mad 0-6 · man 6-12 · med 12-16 · tar 16-20 · noc 20-24 */
+const QUOTES=[
+  {t:'La noche es más oscura justo antes del amanecer.',a:'Thomas Fuller',s:['mad']},
+  {t:'Lo que no me mata me hace más fuerte.',a:'Friedrich Nietzsche',s:['mad','tar']},
+  {t:'Quien tiene un porqué para vivir puede soportar casi cualquier cómo.',a:'Friedrich Nietzsche',s:['mad','noc']},
+  {t:'La fuerza no viene de la capacidad física, sino de una voluntad indomable.',a:'Mahatma Gandhi',s:['mad','tar']},
+  {t:'Caer está permitido. Levantarse es obligatorio.',a:'Proverbio ruso',s:['mad','man']},
+  {t:'Sé agua, amigo mío.',a:'Bruce Lee',s:['mad','med']},
+  {t:'Al amanecer, cuando te cueste levantarte, piensa: me levanto para hacer el trabajo de un ser humano.',a:'Marco Aurelio, Meditaciones',s:['man']},
+  {t:'Un viaje de mil millas comienza con un solo paso.',a:'Lao-Tse',s:['man']},
+  {t:'Caminante, no hay camino, se hace camino al andar.',a:'Antonio Machado',s:['man','tar']},
+  {t:'Haz lo que puedas, con lo que tengas, donde estés.',a:'Theodore Roosevelt',s:['man']},
+  {t:'Bien hecho es mejor que bien dicho.',a:'Benjamin Franklin',s:['man','med']},
+  {t:'No cuentes los días, haz que los días cuenten.',a:'Muhammad Ali',s:['man']},
+  {t:'Mens sana in corpore sano.',a:'Juvenal',s:['man','med']},
+  {t:'A quien madruga, Dios le ayuda.',a:'Refranero español',s:['man']},
+  {t:'No es que tengamos poco tiempo, es que perdemos mucho.',a:'Séneca',s:['med','man']},
+  {t:'La gota horada la piedra, no por su fuerza, sino por su constancia.',a:'Ovidio',s:['med','tar']},
+  {t:'El éxito es la suma de pequeños esfuerzos repetidos día tras día.',a:'Robert Collier',s:['med']},
+  {t:'Cuida tu cuerpo. Es el único lugar que tienes para vivir.',a:'Jim Rohn',s:['med']},
+  {t:'La disciplina es el puente entre las metas y los logros.',a:'Jim Rohn',s:['med','tar']},
+  {t:'Que tu alimento sea tu medicina.',a:'Atribuida a Hipócrates',s:['med']},
+  {t:'Poco a poco se va lejos.',a:'Refranero español',s:['med','noc']},
+  {t:'La energía y la persistencia lo conquistan todo.',a:'Benjamin Franklin',s:['tar']},
+  {t:'Fallas el cien por cien de los tiros que no intentas.',a:'Wayne Gretzky',s:['tar']},
+  {t:'Odiaba cada minuto de entrenamiento, pero me decía: no abandones, sufre ahora y vive el resto de tu vida como un campeón.',a:'Muhammad Ali',s:['tar']},
+  {t:'Los campeones no se hacen en los gimnasios. Se hacen de algo que llevan dentro: un deseo, un sueño, una visión.',a:'Muhammad Ali',s:['tar','mad']},
+  {t:'Ganar no lo es todo, pero querer ganar sí.',a:'Vince Lombardi',s:['tar']},
+  {t:'Parece imposible hasta que se hace.',a:'Atribuida a Nelson Mandela',s:['tar','mad']},
+  {t:'Nada en el mundo puede sustituir a la constancia.',a:'Calvin Coolidge',s:['tar','noc']},
+  {t:'La vida es como montar en bicicleta: para mantener el equilibrio hay que seguir moviéndose.',a:'Albert Einstein',s:['noc','med']},
+  {t:'Somos lo que hacemos repetidamente. La excelencia no es un acto, sino un hábito.',a:'Will Durant, sobre Aristóteles',s:['noc','man']},
+  {t:'Cada noche, antes de dormir, pregúntate: ¿qué defecto he corregido hoy?',a:'Séneca',s:['noc']},
+  {t:'Conócete a ti mismo.',a:'Inscripción del templo de Delfos',s:['noc']},
+  {t:'No importa lo despacio que vayas, siempre que no te detengas.',a:'Atribuida a Confucio',s:['noc','mad']},
+  {t:'Mañana suele ser el día más ocupado de la semana.',a:'Proverbio español',s:['noc']},
+  {t:'Las grandes obras no se hacen con fuerza, sino con perseverancia.',a:'Samuel Johnson',s:['noc','med']},
+  {t:'La paciencia es amarga, pero su fruto es dulce.',a:'Atribuida a Jean-Jacques Rousseau',s:['noc']},
+  {t:'Tanto si crees que puedes como si crees que no, tienes razón.',a:'Atribuida a Henry Ford',s:['man','tar']}
+];
+function slotNow(h=new Date().getHours()){return h<6?'mad':h<12?'man':h<16?'med':h<20?'tar':'noc'}
+function pickQuote(){
+  const sl=slotNow(), pool=QUOTES.map((q,i)=>i).filter(i=>QUOTES[i].s.includes(sl));
+  let last=null;try{last=JSON.parse(localStorage.getItem('midia:lastq'))}catch(e){}
+  let opts=pool.filter(i=>i!==last);if(!opts.length)opts=pool;
+  const i=opts[Math.floor(Math.random()*opts.length)];
+  try{localStorage.setItem('midia:lastq',JSON.stringify(i))}catch(e){}
+  return {i,slot:sl};
+}
+const DEF_FOODS=[
+  {id:'f-mac',name:'Macarrones v3',unit:'tupper',kcal:565,p:26,fib:null},
+  {id:'f-tik',name:'Tikka v2 cremoso',unit:'tupper',kcal:400,p:55,fib:null},
+  {id:'f-len',name:'Lentejas con pollo',unit:'tupper',kcal:630,p:56,fib:null},
+  {id:'f-cot',name:'Cottage Proteína Plus',unit:'tarrina',kcal:null,p:null,fib:null},
+  {id:'f-bar',name:'Real Protein Bar Choco-Cookie',unit:'barrita',kcal:null,p:null,fib:null},
+  {id:'f-cac',name:'Cacaolat Pro',unit:'botella',kcal:null,p:null,fib:null},
+  {id:'f-crk',name:'Crackers de espelta',unit:'ración',kcal:null,p:null,fib:null},
+  {id:'f-top',name:'Postre TOP',unit:'bol',kcal:null,p:null,fib:null,note:'queso batido + whey + granola'}
+];
+const DEF_CHECK=[
+  {id:'c-omega',label:'Omega-3',days:null},
+  {id:'c-crea',label:'Creatina',note:'vaso amarillo',days:null},
+  {id:'c-kiwi',label:'Kiwi',days:null},
+  {id:'c-ferm',label:'Lácteo fermentado',days:null},
+  {id:'c-paseo',label:'Paseo post-comida',note:'10–15 min',days:null},
+  {id:'c-pesaje',label:'Pesaje del lunes',note:'en ayunas, mismas condiciones',days:[1],weigh:true}
+];
+const SLOTS=['Desayuno','Comida','Merienda','Cena','Snack'];
+const DOW=[[1,'L'],[2,'M'],[3,'X'],[4,'J'],[5,'V'],[6,'S'],[0,'D']];
+
+const S={ai:{...DEF_AI},fq:'',fcat:'hab',goals:{...DEF_GOALS},foods:DEF_FOODS.map(f=>({...f})),checklist:DEF_CHECK.map(c=>({...c})),days:{},date:key(new Date()),tab:'inicio',online:false,loaded:false,quote:pickQuote(),anim:false,dirty:false};
+let sheetCtx=null;
+
+/* ---------- utilidades ---------- */
+function pad(n){return String(n).padStart(2,'0')}
+function key(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function parse(k){const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)}
+function addDays(k,n){const d=parse(k);d.setDate(d.getDate()+n);return key(d)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function r0(n){return Math.round(n||0)}
+function fmt(n){return r0(n).toLocaleString('es-ES')}
+function fmt1(n){return (Math.round(n*10)/10).toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1})}
+function uid(p){return p+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function num(v){if(v===''||v==null)return null;const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:null}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function today(){return key(new Date())}
+
+/* ---------- almacenamiento ---------- */
+const LS='midia:';
+function lsGet(k){try{return JSON.parse(localStorage.getItem(LS+k))}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}}
+/* sincronización con Supabase: tabla docs(user_id, path, data) */
+let sb=null, sess=null, flushing=false, syncErr=false, lastSync=null;
+function pend(){return lsGet('_pending')||{}}
+function setPend(p){lsSet('_pending',p)}
+function save(path,data){
+  lsSet(path,data);
+  const p=pend();p[path]=Date.now();setPend(p);
+  clearTimeout(save._t);save._t=setTimeout(flush,400);
+}
+async function flush(){
+  if(flushing||!sb||!sess)return; flushing=true;
+  try{
+    const p=pend(),paths=Object.keys(p);
+    if(paths.length){
+      const rows=paths.map(path=>({user_id:sess.user.id,path,data:lsGet(path)||{},updated_at:new Date().toISOString()}));
+      const {error}=await sb.from('docs').upsert(rows,{onConflict:'user_id,path'});
+      if(error)throw error;
+      const now=pend();paths.forEach(k=>{if(now[k]===p[k])delete now[k]});setPend(now);
+    }
+    syncErr=false;lastSync=Date.now();
+  }catch(e){syncErr=true}
+  flushing=false;renderSync();
+  if(Object.keys(pend()).length&&!syncErr)flush();
+}
+function applyDoc(path,data){
+  if(path==='cfg/goals')S.goals={...DEF_GOALS,...data};
+  else if(path==='cfg/foods'){if(Array.isArray(data.items))S.foods=data.items}
+  else if(path==='cfg/checklist'){if(Array.isArray(data.items))S.checklist=data.items}
+  else if(path==='cfg/ai')S.ai={...DEF_AI,...data};
+  else if(path.startsWith('days/'))S.days[path.slice(5)]=data;
+}
+async function pull(){
+  if(!sb||!sess)return;
+  try{
+    const p=pend();let from=0;const size=1000;
+    while(true){
+      const {data,error}=await sb.from('docs').select('path,data').range(from,from+size-1);
+      if(error)throw error;
+      data.forEach(r=>{if(p[r.path])return;lsSet(r.path,r.data);applyDoc(r.path,r.data)});
+      if(data.length<size)break;from+=size;
+    }
+    syncErr=false;lastSync=Date.now();S.loaded=true;
+  }catch(e){syncErr=true}
+  render();flush();
+}
+function loadLocal(){
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||!k.startsWith(LS))continue;const path=k.slice(LS.length);
+    if(path.startsWith('cfg/')||path.startsWith('days/')){const v=lsGet(path);if(v)applyDoc(path,v)}}}catch(e){}
+}
+function syncText(){
+  const n=Object.keys(pend()).length;
+  if(!sess)return 'Sin sesión';
+  if(!navigator.onLine)return n?`Sin conexión · ${n} cambio${n>1?'s':''} pendiente${n>1?'s':''} de subir`:'Sin conexión · tus datos están en este móvil';
+  if(syncErr)return 'No se pudo sincronizar · se reintentará';
+  if(n)return 'Guardando…';
+  return 'Sincronizado en tu cuenta';
+}
+function renderSync(){const e=document.getElementById('syncLine');if(e)e.textContent=syncText()}
+
+/* ---------- conexión y acceso ---------- */
+function cfgGet(){const c=window.MIDIA_CONFIG||{};let u=null,k=null;try{u=localStorage.getItem('midia:_sbUrl');k=localStorage.getItem('midia:_sbKey')}catch(e){}
+  return {url:(u||c.supabaseUrl||'').trim(),key:(k||c.supabaseAnonKey||'').trim()}}
+function makeClient(){const c=cfgGet();if(!c.url||!c.key||!window.supabase)return null;
+  try{return window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'midia-auth'}})}catch(e){return null}}
+async function connect(){
+  sb=makeClient();
+  if(!sb){showLogin();return}
+  const {data}=await sb.auth.getSession();sess=data&&data.session;
+  if(!sess){showLogin();return}
+  sb.auth.onAuthStateChange((ev,se)=>{sess=se;if(!se&&ev==='SIGNED_OUT')showLogin()});
+  hideLogin();pull();
+}
+function showLogin(msg){
+  const c=cfgGet(),has=!!(c.url&&c.key);
+  document.getElementById('login').hidden=false;
+  document.getElementById('login').innerHTML=`<div class="lg"><img src="icons/icon-192.png" alt="" class="lgicon"><h1>Mi Día a Día</h1><p class="note">Entra con tu cuenta para sincronizar tus datos.</p>
+    <form id="lgForm">
+      <div class="field"><label for="lgMail">Email</label><input id="lgMail" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="lgPass">Contraseña</label><input id="lgPass" type="password" autocomplete="current-password" required></div>
+      <details ${has?'':'open'}><summary>Servidor (Supabase)</summary>
+        <div class="field"><label for="lgUrl">Project URL</label><input id="lgUrl" value="${esc(c.url)}" placeholder="https://xxxx.supabase.co" autocapitalize="off"></div>
+        <div class="field"><label for="lgKey">Clave pública (anon / publishable)</label><input id="lgKey" value="${esc(c.key)}" autocapitalize="off"></div>
+      </details>
+      <p class="note" id="lgMsg" style="color:var(--warn)">${esc(msg||'')}</p>
+      <button class="btn pri" type="submit" style="width:100%">Entrar</button>
+    </form></div>`;
+}
+function hideLogin(){const l=document.getElementById('login');l.hidden=true;l.innerHTML=''}
+async function doLogin(e){
+  e.preventDefault();const m=document.getElementById('lgMsg');
+  const url=val('lgUrl').trim().replace(/\/+$/,''),key=val('lgKey').trim();
+  if(!/^https:\/\/.+/.test(url)||!key){m.textContent='Rellena la URL y la clave del servidor.';return}
+  try{localStorage.setItem('midia:_sbUrl',url);localStorage.setItem('midia:_sbKey',key)}catch(_){}
+  sb=makeClient();if(!sb){m.textContent='No se pudo conectar con ese servidor.';return}
+  m.style.color='var(--muted)';m.textContent='Entrando…';
+  const {data,error}=await sb.auth.signInWithPassword({email:val('lgMail').trim(),password:val('lgPass')});
+  if(error){m.style.color='var(--warn)';m.textContent=error.message&&/invalid/i.test(error.message)?'Email o contraseña incorrectos.':'No se pudo entrar: '+(error.message||'error');return}
+  sess=data.session;sb.auth.onAuthStateChange((ev,se)=>{sess=se});hideLogin();pull();
+}
+async function logout(){if(sb)await sb.auth.signOut();sess=null;showLogin()}
+window.addEventListener('online',()=>{renderSync();flush();pull()});
+window.addEventListener('offline',renderSync);
+setInterval(()=>{if(document.visibilityState==='visible'&&sess){flush()}},60000);
+
+/* ---------- modelo del día ---------- */
+function blank(){return {meals:[],workouts:[],steps:0,water:0,checks:{},weight:null}}
+function day(k=S.date){const d=S.days[k];return d?{...blank(),...d}:blank()}
+function updDay(fn,k=S.date){
+  const d=JSON.parse(JSON.stringify(day(k)));
+  fn(d); S.days[k]=d; save('days/'+k,d); render();
+}
+function totals(d){
+  return d.meals.reduce((a,m)=>({kcal:a.kcal+(m.kcal||0),p:a.p+(m.p||0),hc:a.hc+(m.hc||0),gr:a.gr+(m.gr||0),fib:a.fib+(m.fib||0)}),{kcal:0,p:0,hc:0,gr:0,fib:0});
+}
+function burned(d){return d.workouts.reduce((a,w)=>a+(w.kcal||0),0)}
+function itemsFor(k){const dw=parse(k).getDay();return S.checklist.filter(c=>!c.days||!c.days.length||c.days.includes(dw))}
+function progress(k){
+  const d=day(k), items=itemsFor(k);
+  let done=items.filter(c=>d.checks[c.id]).length;
+  const total=items.length+1; if(d.water>=S.goals.water)done++;
+  return {done,total};
+}
+
+/* ---------- render ---------- */
+const ICON={
+  hoy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>',
+  comida:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v9M4 2v5a3 3 0 0 0 6 0V2M7 11v11"/><path d="M17 2c-2 2-3 5-3 8h3v12"/></svg>',
+  deporte:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>',
+  inicio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
+  progreso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/></svg>'
+};
+const TICK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+function render(){
+  if(S.anim){S.dirty=true;return}
+  const nav=document.getElementById('nav');
+  nav.innerHTML=[['inicio','Inicio'],['hoy','Hoy'],['comida','Comida'],['deporte','Deporte'],['progreso','Progreso']].map(([k,l])=>`<button data-act="tab" data-v="${k}" class="${S.tab===k?'on':''}" aria-current="${S.tab===k?'page':'false'}">${ICON[k]}${l}</button>`).join('');
+  if(S.tab==='inicio'){
+    document.getElementById('app').innerHTML=vInicio()+`<div class="sync" id="syncLine">${syncText()}</div>`;
+    bindWater();return;
+  }
+  const isToday=S.date===today();
+  const d=parse(S.date);
+  const label=isToday?'Hoy':S.date===addDays(today(),-1)?'Ayer':d.toLocaleDateString('es-ES',{weekday:'long'});
+  const sub=d.toLocaleDateString('es-ES',{weekday:isToday?'long':undefined,day:'numeric',month:'long'});
+  let h=`<header class="top"><button class="iconbtn" data-act="prev" aria-label="Día anterior">‹</button>
+    <div class="datebox"><div class="d">${esc(label)}</div><div class="s">${esc(sub)}${!isToday?' · <a href="#" data-act="today" style="color:var(--accent)">ir a hoy</a>':''}</div></div>
+    <button class="iconbtn" data-act="next" aria-label="Día siguiente" ${isToday?'disabled':''}>›</button></header>`;
+  h+=({hoy:vHoy,comida:vComida,deporte:vDeporte,progreso:vProgreso})[S.tab]();
+  h+=`<div class="sync" id="syncLine">${syncText()}</div>`;
+  document.getElementById('app').innerHTML=h;
+}
+
+/* ---------- inicio ---------- */
+const CAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+const SCAN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3"/><path d="M8 9v6M11 9v6M14 9v6M17 9v6"/></svg>';
+function vInicio(){
+  const tk=today(), g=S.goals, d=day(tk), t=totals(d);
+  const h=new Date().getHours();
+  const greet=h<6?'Turno de noche, Rubén':h<14?'Buenos días, Rubén':h<21?'Buenas tardes, Rubén':'Buenas noches, Rubén';
+  const st=g.start||DEF_GOALS.start;
+  const dd=Math.floor((parse(tk)-parse(st))/864e5);
+  const wk=Math.max(1,Math.floor(dd/7)+1), dow=(parse(tk).getDay()+6)%7;
+  const wts=Object.keys(S.days).filter(k=>S.days[k]&&S.days[k].weight!=null).sort();
+  let lost='';if(wts.length>1){const df=S.days[wts[0]].weight-S.days[wts[wts.length-1]].weight;lost=`<div class="wkmeta">${df>=0?'Llevas':'Diferencia'}<b>${df>=0?'−':'+'}${fmt1(Math.abs(df))} kg</b></div>`}
+  let mon=addDays(tk,-dow);
+  const strip=DOW.map(([n,l],i)=>{const k=addDays(mon,i),fut=k>tk,p=progress(k),r=S.days[k]&&!fut?p.done/p.total:0;
+    return `<div class="dd ${k===tk?'today':''} ${fut?'fut':''}">${l}<div class="dot" style="${r?`background:color-mix(in srgb, var(--ok) ${Math.round(20+r*80)}%, var(--chip));color:${r>.6?'var(--surface)':'var(--ink)'}`:''}">${parse(k).getDate()}</div></div>`}).join('');
+  const q=QUOTES[S.quote.i];
+  const wp=Math.min(100,d.water/g.water*100);
+  return `<section class="hello"><div class="greet">${greet}</div>
+    <div class="wkrow"><div class="wkn">Semana ${wk}<small>día ${dow+1}/7</small></div>${lost}</div>
+    <div class="strip" aria-label="Checklist de esta semana">${strip}</div></section>
+    ${S.loaded&&!Object.keys(S.days).length?`<section class="card" style="border:2px dashed var(--accent)"><h2>Bienvenido</h2><p class="note" style="margin-top:0">¿Vienes de la app de Claude? Importa tu copia de seguridad para recuperar tu historial y tus alimentos.</p><div class="btnrow"><button class="btn pri" data-act="goImport">Importar copia</button></div></section>`:''}
+    <blockquote class="quote"><button class="qnext" data-act="qnext" aria-label="Otra frase">otra ↻</button><span class="qm" aria-hidden="true">“</span><p>${esc(q.t)}</p><cite>${esc(q.a)}</cite></blockquote>
+    <div class="actions">
+      <button class="abtn pri" data-act="photo">${CAM}<b>Registro rápido</b><span>Foto + mensaje y la IA calcula</span></button>
+      <button class="abtn" data-act="scan">${SCAN}<b>Escanear producto</b><span>Foto de la etiqueta a tu base de datos</span></button>
+    </div>
+    <section class="card water" id="waterCard"><h2>Agua <span class="pill ${d.water>=g.water?'full':''}">objetivo ${fmt1(g.water/1000)} L</span></h2>
+      <div class="glass" id="glass" role="slider" tabindex="0" aria-label="Agua que bebes ahora" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0" aria-valuetext="0 ml">
+        <div class="wfill" id="gfill"></div><div class="lab"><span id="glab">Desliza y suelta para beber</span><b id="gml">0 ml</b></div></div>
+      <div class="gscale"><span>0</span><span>250</span><span>500</span><span>750</span><span>1 L</span></div>
+      <div class="fallgap"></div>
+      <div class="tankrow"><span>Llevas hoy</span><b id="tml">${fmt1(d.water/1000)} / ${fmt1(g.water/1000)} L</b></div>
+      <div class="tank" id="tank"><div class="tfill" id="tfill" style="width:${wp}%"></div></div>
+      <div id="wreset" class="wreset">${wResetBtn(d.water)}</div>
+    </section>
+    <section class="card"><h2>Hoy <button class="act" data-act="tab" data-v="hoy">Ver el día</button></h2>
+      <div class="today-mini">
+        <div class="stat"><div class="v">${fmt(Math.max(0,g.kcal-t.kcal))}</div><div class="k">kcal restantes</div></div>
+        <div class="stat"><div class="v">${fmt(t.p)}<small style="font-size:14px;color:var(--muted)"> / ${fmt(g.p)}</small></div><div class="k">Proteína g</div></div>
+        <div class="stat"><div class="v">${(()=>{const p=progress(tk);return p.done+'/'+p.total})()}</div><div class="k">Checklist</div></div>
+      </div></section>`;
+}
+function wResetBtn(w){return `<button class="resetbtn" data-act="wReset" ${w?'':'disabled'}>↺ Resetear agua de hoy</button>`}
+const RM=matchMedia('(prefers-reduced-motion: reduce)');
+function bindWater(){
+  const g=document.getElementById('glass');if(!g)return;
+  const fill=document.getElementById('gfill'),lab=document.getElementById('gml'),hint=document.getElementById('glab');
+  let ml=0,drag=false;
+  const setMl=v=>{ml=Math.max(0,Math.min(1000,Math.round(v/50)*50));fill.style.width=ml/10+'%';lab.textContent=ml+' ml';
+    g.setAttribute('aria-valuenow',ml);g.setAttribute('aria-valuetext',ml+' ml');hint.textContent=ml?(drag?'Suelta para beber':'Enter para beber'):'Desliza y suelta para beber'};
+  const fx=e=>{const r=g.getBoundingClientRect();return (e.clientX-r.left)/r.width*1000};
+  g.addEventListener('pointerdown',e=>{drag=true;try{g.setPointerCapture(e.pointerId)}catch(_){}setMl(fx(e))});
+  g.addEventListener('pointermove',e=>{if(drag)setMl(fx(e))});
+  const up=()=>{if(!drag)return;drag=false;if(ml>=50)pour(ml);else setMl(0)};
+  g.addEventListener('pointerup',up);g.addEventListener('pointercancel',()=>{drag=false;setMl(0)});
+  g.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowUp'){e.preventDefault();setMl(ml+50)}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){e.preventDefault();setMl(ml-50)}
+    else if((e.key==='Enter'||e.key===' ')&&ml>=50){e.preventDefault();pour(ml)}
+  });
+}
+function pour(ml){
+  const tk=today(),goal=S.goals.water;
+  const d=JSON.parse(JSON.stringify(day(tk)));const before=d.water||0;d.water=before+ml;
+  S.days[tk]=d;save('days/'+tk,d);
+  const p0=Math.min(100,before/goal*100),p1=Math.min(100,d.water/goal*100);
+  const card=document.getElementById('waterCard'),g=document.getElementById('glass'),gf=document.getElementById('gfill'),
+        tank=document.getElementById('tank'),tf=document.getElementById('tfill'),tml=document.getElementById('tml');
+  const done=()=>{S.anim=false;S.dirty=false;render();
+    toast(`+${ml} ml · ${fmt1(d.water/1000)} L hoy`,{label:'Deshacer',fn:()=>updDay(x=>{x.water=Math.max(0,(x.water||0)-ml)},tk)})};
+  if(RM.matches||!card||!card.animate){done();return}
+  S.anim=true;
+  const cr=card.getBoundingClientRect(),gr=g.getBoundingClientRect(),tr=tank.getBoundingClientRect();
+  const fw=gr.width*ml/1000,n=Math.min(18,5+Math.round(ml/70)),step=60;
+  const y0=gr.bottom-cr.top-10,y1=tr.top-cr.top+6;
+  const edge=tr.left-cr.left+tr.width*p0/100;
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');el.className='wdrop';card.appendChild(el);
+    const x=gr.left-cr.left+Math.max(4,Math.min(fw-8,fw*(1-(i+0.5)/n)+(Math.random()-.5)*14));
+    const tx=x+(Math.max(edge,tr.left-cr.left+8)-x)*0.25+(Math.random()-.5)*10;
+    const s=0.7+Math.random()*0.6;
+    el.animate([
+      {transform:`translate(${x}px,${y0}px) rotate(45deg) scale(${s*.4})`,opacity:0},
+      {transform:`translate(${x}px,${y0+6}px) rotate(45deg) scale(${s})`,opacity:1,offset:.12},
+      {transform:`translate(${tx}px,${y1}px) rotate(45deg) scale(${s})`,opacity:1,offset:.88},
+      {transform:`translate(${tx}px,${y1+6}px) rotate(45deg) scale(${s*1.6},${s*.3})`,opacity:0}
+    ],{duration:620,delay:i*step,easing:'cubic-bezier(.55,0,.85,.55)',fill:'both'}).finished.then(()=>el.remove(),()=>el.remove());
+  }
+  const drain=n*step+250;
+  gf.animate([{width:ml/10+'%'},{width:'0%'}],{duration:drain,easing:'linear',fill:'forwards'});
+  const fillDur=drain;
+  tf.animate([{width:p0+'%'},{width:p1+'%'}],{duration:fillDur,delay:420,easing:'cubic-bezier(.3,.6,.4,1)',fill:'forwards'});
+  const t0=performance.now()+420;
+  const tick=now=>{const k=Math.max(0,Math.min(1,(now-t0)/fillDur));tml.textContent=`${fmt1((before+ml*k)/1000)} / ${fmt1(goal/1000)} L`;if(k<1)requestAnimationFrame(tick)};
+  requestAnimationFrame(tick);
+  setTimeout(done,420+fillDur+150);
+}
+
+/* ---------- IA: foto y escáner ---------- */
+const MODELS=[['claude-sonnet-5-5','Sonnet 5.5 · más preciso'],['claude-haiku-4-5-20251001','Haiku 4.5 · más barato']];
+function aiKey(){try{return localStorage.getItem('midia:_aiKey')||''}catch(e){return ''}}
+function aiModel(){try{return localStorage.getItem('midia:_aiModel')||MODELS[0][0]}catch(e){return MODELS[0][0]}}
+function b64(blob){return new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=ko;r.readAsDataURL(blob)})}
+async function aiCall(prompt,opts={}){
+  const key=aiKey();if(!key)throw {code:'no_key'};
+  const content=[];
+  for(const im of (opts.images||[])){content.push({type:'image',source:{type:'base64',media_type:im.type&&/png|webp|gif/.test(im.type)?im.type:'image/jpeg',data:await b64(im)}})}
+  content.push({type:'text',text:prompt+(opts.json?'\n\nTu respuesta se procesará automáticamente: responde únicamente con el JSON, sin texto antes ni después.':'')});
+  let res;
+  try{res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:opts.signal,headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:opts.model||aiModel(),max_tokens:opts.max||2000,messages:[{role:'user',content}]})})}
+  catch(e){if(e&&e.name==='AbortError')throw {code:'cancelled'};throw {code:navigator.onLine?'upstream_error':'offline'}}
+  let body=null;try{body=await res.json()}catch(e){}
+  if(!res.ok){const msg=(body&&body.error&&body.error.message)||'';
+    if(res.status===401)throw {code:'bad_key'};
+    if(/credit balance/i.test(msg))throw {code:'no_credit'};
+    if(res.status===429)throw {code:'rate_limited'};
+    if(res.status===529||res.status>=500)throw {code:'upstream_error'};
+    throw {code:'api_error',message:msg}}
+  const text=(body.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+  if(!text)throw {code:'empty_completion'};
+  if(opts.onText)try{opts.onText({text,delta:text})}catch(e){}
+  return {text,truncated:body.stop_reason==='max_tokens'};
+}
+function parseJSON(t){
+  try{return JSON.parse(t)}catch(e){}
+  const f=t.match(/```(?:json)?\s*([\s\S]*?)```/);if(f)try{return JSON.parse(f[1])}catch(e){}
+  const a=Math.min(...['{','['].map(c=>{const i=t.indexOf(c);return i<0?1e9:i})),b=Math.max(t.lastIndexOf('}'),t.lastIndexOf(']'));
+  if(a<1e9&&b>a)try{return JSON.parse(t.slice(a,b+1))}catch(e){}
+  throw {code:'invalid_json',text:t};
+}
+function getSample(){
+  if(!aiKey())return Promise.resolve(null);
+  const f=(p,o)=>aiCall(p,o);
+  f.json=async(p,o={})=>parseJSON((await aiCall(p,{...o,json:true})).text);
+  f.limits=async()=>({images:{maxCount:5,maxInputBytes:20e6,mediaTypes:['image/jpeg','image/png','image/webp']}});
+  return Promise.resolve(f);
+}
+async function toJpeg(file){
+  try{
+    let src,w,h,bmp=null,img=null;
+    if(window.createImageBitmap){try{bmp=await createImageBitmap(file)}catch(e){bmp=null}}
+    if(bmp){w=bmp.width;h=bmp.height;src=bmp}
+    else{const url=URL.createObjectURL(file);img=new Image();await new Promise((ok,ko)=>{img.onload=ok;img.onerror=ko;img.src=url});w=img.naturalWidth;h=img.naturalHeight;src=img}
+    const k=Math.min(1,1600/Math.max(w,h)),cw=Math.round(w*k),ch=Math.round(h*k);
+    const c=document.createElement('canvas');c.width=cw;c.height=ch;c.getContext('2d').drawImage(src,0,0,cw,ch);
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+    return blob&&blob.size?blob:file;
+  }catch(e){return file}
+}
+async function canImages(s){try{const l=await s.limits();return l&&l.images?l.images:null}catch(e){return null}}
+function aiErr(e){const c=e&&e.code;
+  if(c==='no_key')return 'Añade tu clave de Anthropic en Progreso → Cuenta e IA para usar la IA.';
+  if(c==='bad_key')return 'La clave de Anthropic no es válida. Revísala en Progreso → Cuenta e IA.';
+  if(c==='no_credit')return 'Tu cuenta de Anthropic no tiene saldo. Recárgala en console.anthropic.com.';
+  if(c==='offline')return 'Sin conexión. La IA necesita internet.';
+  if(c==='api_error')return 'La IA devolvió un error: '+(e.message||'desconocido');
+  if(c==='cancelled')return '';
+  if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(c))return 'La IA no está activada para esta app en este dispositivo. Puedes añadirlo a mano.';
+  if(c==='images_unavailable')return 'Aquí no se pueden enviar fotos. Escribe solo el mensaje.';
+  if(c==='rate_limited')return 'Demasiadas peticiones seguidas. Prueba en un rato.';
+  if(c==='image_rejected')return 'No se pudo leer esa foto. Prueba con otra.';
+  if(c==='refused')return 'No se pudo analizar. Cambia la foto o el mensaje.';
+  if(c==='session_expired')return 'Tu sesión ha caducado. Vuelve a iniciar sesión.';
+  return 'No salió bien. Vuelve a intentarlo.';}
+function thinking(txt){return `<div class="thinking"><i></i><span>${txt}</span><button class="mbtn" data-act="aiStop" style="margin-left:auto">Parar</button></div>`}
+function foodsForAI(){return S.foods.map(f=>{const o={id:f.id,n:f.name,u:f.unit||'ración'};if(f.kcal!=null){o.kcal=f.kcal;o.p=f.p;if(f.hc!=null)o.hc=f.hc;if(f.gr!=null)o.gr=f.gr;if(f.fib!=null)o.fib=f.fib}else o.sinValores=true;if(f.brand)o.marca=f.brand;if(f.grams)o.g=f.grams;if(f.per100&&f.per100.kcal!=null)o.por100=f.per100;if(f.est)o.estimado=true;if(f.note)o.nota=f.note;return o})}
+function aiMemText(){const a=S.ai||DEF_AI;const sec=(t,l)=>l&&l.length?t+':\n- '+l.join('\n- ')+'\n':'';return sec('Reglas del usuario',a.rules)+sec('Comidas típicas (cantidades habituales)',a.typical)+sec('Otros datos',a.notes)}
+function zoneHtml(files,txt){
+  if(!files||!files.length)return `<span>${txt}</span>`;
+  return `<div class="thumbs">${[...files].map(f=>`<img src="${URL.createObjectURL(f)}" alt="Foto elegida">`).join('')}</div>`;
+}
+function noImgDev(){return false}
+function setNoImg(v){try{v?localStorage.setItem('midia:noimg','1'):localStorage.removeItem('midia:noimg')}catch(e){}}
+function openPhoto(){
+  if(noImgDev()){openSheet(`<h3>Registro rápido</h3>
+    <p class="note" style="margin-top:-6px">En este dispositivo Claude no acepta fotos desde la app. Escribe (o dicta con el micrófono del teclado) lo que has comido y la IA lo calcula con tus alimentos.</p>
+    <div class="field"><label for="phTxt">¿Qué has comido?</label><textarea id="phTxt" rows="3" placeholder="Ej. medio tupper de macarrones, 2 huevos y un Cacaolat Pro"></textarea></div>
+    <div class="field"><label for="phSlot">Momento</label>${slotSel('phSlot')}</div>
+    <div id="phOut"></div>
+    <div class="btnrow" id="phBtns"><button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="phGo">Calcular</button></div>
+    <button class="linkbtn" data-act="retryImg">Volver a probar con foto</button>`,{kind:'photo',files:null});return}
+  openSheet(`<h3>Registro rápido</h3>
+    <label class="zone" for="phIn" id="phZone"><span>Toca para hacer o elegir una foto</span></label>
+    <input type="file" id="phIn" accept="image/*" hidden>
+    <div class="field"><label for="phTxt">Mensaje rápido</label><textarea id="phTxt" rows="2" placeholder="Ej. medio tupper de macarrones y un Cacaolat Pro"></textarea></div>
+    <div class="field"><label for="phSlot">Momento</label>${slotSel('phSlot')}</div>
+    <div id="phOut"></div>
+    <div class="btnrow" id="phBtns"><button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="phGo">Calcular</button></div>`,{kind:'photo',files:null});
+}
+function renderEst(){
+  const it=sheetCtx.items||[];
+  const tot=it.reduce((a,x)=>({k:a.k+(+x.kcal||0),p:a.p+(+x.p||0)}),{k:0,p:0});
+  document.getElementById('phOut').innerHTML=`<div class="tankrow" style="margin-top:4px"><span>Estimación · revisa y corrige</span><b>${fmt(tot.k)} kcal · ${fmt(tot.p)} P</b></div>`+
+    it.map((x,i)=>`<div class="est"><div class="top"><input id="e-n-${i}" value="${esc(x.name)}" aria-label="Alimento"><span class="conf ${x.conf==='baja'?'baja':''}">${esc(x.conf||'media')}</span><button class="del" data-act="estDel" data-i="${i}" aria-label="Quitar">×</button></div>
+      <div class="f3"><div><label for="e-k-${i}">Kcal</label><input id="e-k-${i}" inputmode="decimal" value="${r0(x.kcal)}"></div><div><label for="e-p-${i}">Prot. g</label><input id="e-p-${i}" inputmode="decimal" value="${r0(x.p)}"></div><div><label for="e-f-${i}">Fibra g</label><input id="e-f-${i}" inputmode="decimal" value="${r0(x.fib)}"></div></div>
+      <div class="f3"><div><label for="e-h-${i}">HC g</label><input id="e-h-${i}" inputmode="decimal" value="${r0(x.hc)}"></div><div><label for="e-g-${i}">Grasas g</label><input id="e-g-${i}" inputmode="decimal" value="${r0(x.gr)}"></div><div></div></div></div>`).join('')+
+    (sheetCtx.nota?`<p class="note">${esc(sheetCtx.nota)}</p>`:'');
+  document.getElementById('phBtns').innerHTML=`<button class="btn" data-act="phGo">Recalcular</button><button class="btn pri" data-act="phAdd" ${it.length?'':'disabled'}>Añadir al día</button>`;
+}
+function estSync(){(sheetCtx.items||[]).forEach((x,i)=>{const n=document.getElementById('e-n-'+i);if(!n)return;x.name=n.value;x.kcal=num(val('e-k-'+i))||0;x.p=num(val('e-p-'+i))||0;x.fib=num(val('e-f-'+i))||0;x.hc=num(val('e-h-'+i))||0;x.gr=num(val('e-g-'+i))||0})}
+async function phGo(){
+  if(sheetCtx.items)estSync();
+  const txt=val('phTxt').trim(),files=sheetCtx.files,out=document.getElementById('phOut');
+  if(!txt&&!(files&&files.length)){toast('Añade una foto o un mensaje');return}
+  const s=await getSample();
+  if(!s){out.innerHTML=`<p class="note">Para usar la IA añade tu clave de Anthropic en Progreso → Cuenta e IA.</p>`;return}
+  let imgs=null;if(files&&files.length){out.innerHTML=thinking('Preparando la foto…');imgs=await Promise.all([...files].slice(0,1).map(toJpeg))}
+  const prompt=`Eres el asistente de nutrición de la app personal de registro de comidas de Rubén (España). Estima lo que ha comido a partir de ${imgs?'la foto adjunta y ':''}su mensaje.
+Mensaje: "${txt||'(sin mensaje, usa solo la foto)'}"
+${aiMemText()}
+Base de datos de sus alimentos y recetas (valores por la unidad "u", g = gramos de esa unidad; "por100" = valores por 100 g/ml; "estimado" = no es de etiqueta; "nota" = cantidades habituales y contexto):
+${JSON.stringify(foodsForAI())}
+Reglas de cálculo:
+- Si un alimento coincide con uno de la base de datos, usa su "id" como foodId y calcula con sus valores multiplicados por la cantidad.
+- Si no está, estima con valores nutricionales típicos de productos españoles y pon foodId null.
+- Si el mensaje no da cantidades, estímalas por la foto (tamaño del plato, cubiertos, envases).
+- Si el mensaje da gramos, calcula con "por100" cuando exista.
+- Si una comida conocida (receta o tupper) aparece sin cantidades nuevas, usa su ración habitual.
+- Si no se puede saber la cantidad de algo, inclúyelo con conf "baja" y dilo en la nota; no inventes precisión.
+- kcal, p (proteína g), hc (hidratos g), gr (grasas g) y fib (fibra g) ya multiplicados por la cantidad. Números, sin texto.
+- conf: "alta" si viene de la base de datos con cantidad clara, "media" o "baja" si es estimación.
+Responde solo con JSON: {"items":[{"name":"","foodId":null,"qty":1,"kcal":0,"p":0,"hc":0,"gr":0,"fib":0,"conf":"media"}],"nota":"una frase corta con los supuestos que has hecho"}`;
+  const ctl=new AbortController();sheetCtx.ctl=ctl;
+  out.innerHTML=thinking('Calculando… puede tardar unos segundos');
+  document.getElementById('phBtns').querySelectorAll('button').forEach(b=>b.disabled=true);
+  try{
+    const opts={signal:ctl.signal,cache:false};if(imgs)opts.images=imgs;
+    let r,noImg=false;
+    try{r=await s.json(prompt,opts)}
+    catch(e){if(e&&e.code==='images_unavailable')setNoImg(true);if(e&&e.code==='images_unavailable'&&txt){noImg=true;delete opts.images;r=await s.json(prompt.replace('la foto adjunta y ',''),opts)}else throw e}
+    if(!sheetCtx||sheetCtx.kind!=='photo')return;
+    const items=Array.isArray(r&&r.items)?r.items:[];
+    sheetCtx.items=items.map(x=>({name:String(x.name||'Alimento'),foodId:x.foodId||null,qty:+x.qty||1,kcal:+x.kcal||0,p:+x.p||0,hc:+x.hc||0,gr:+x.gr||0,fib:+x.fib||0,conf:String(x.conf||'media')}));
+    if(imgs&&!noImg)setNoImg(false);
+    sheetCtx.nota=(noImg?'En este dispositivo no se pudo enviar la foto: calculado solo con tu mensaje. ':'')+(r&&r.nota?String(r.nota):'');
+    if(!sheetCtx.items.length)sheetCtx.nota='No he identificado comida. Prueba con otra foto o añade más detalle en el mensaje.';
+    renderEst();
+  }catch(e){
+    if(!sheetCtx||sheetCtx.kind!=='photo')return;
+    if(e&&e.code==='images_unavailable'){setNoImg(true);out.innerHTML=`<p class="note">En este dispositivo Claude no acepta fotos desde la app. Escribe lo que has comido en el mensaje y pulsa Calcular.</p>`;sheetCtx.files=null;document.getElementById('phZone').innerHTML='<span>Toca para elegir otra foto</span>'}
+    else out.innerHTML=aiErr(e)?`<p class="note">${aiErr(e)}</p>`:'';
+    document.getElementById('phBtns').innerHTML=`<button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="phGo">Calcular</button>`;
+  }
+}
+function openScan(){
+  openSheet(`<h3>Escanear producto</h3>
+    <label class="zone" for="scIn" id="scZone"><span>Haz una foto a la tabla nutricional<br><small style="font-weight:400">y otra al frontal si quieres (máx. 2)</small></span></label>
+    <input type="file" id="scIn" accept="image/*" multiple hidden>
+    <div id="scOut"></div>
+    <div class="btnrow" id="scBtns"><button class="btn" data-act="close">Cancelar</button><button class="btn" data-act="foodNew">Añadir a mano</button><button class="btn pri" data-act="scGo">Leer etiqueta</button></div>`,{kind:'scan',files:null});
+}
+async function scGo(){
+  const files=sheetCtx.files,out=document.getElementById('scOut');
+  if(!files||!files.length){toast('Haz primero una foto de la etiqueta');return}
+  const s=await getSample();
+  if(!s){out.innerHTML=`<p class="note">Para leer etiquetas añade tu clave de Anthropic en Progreso → Cuenta e IA.</p>`;return}
+  out.innerHTML=thinking('Preparando las fotos…');const imgs=await Promise.all([...files].slice(0,2).map(toJpeg));
+  const prompt=`Extrae los datos de este producto alimentario a partir de las fotos (tabla nutricional y/o frontal del envase). Producto vendido en España.
+Responde solo con JSON:
+{"name":"nombre comercial corto","brand":"marca o null","unit":"unidad habitual de consumo, ej. 'tarrina 150 g', 'barrita 55 g', 'botella 250 ml' o '100 g'","grams":gramos o ml de esa unidad o null,"per100":{"kcal":null,"p":null,"carbs":null,"sugar":null,"fat":null,"sat":null,"fib":null,"salt":null},"perUnit":{"kcal":null,"p":null,"carbs":null,"fat":null,"fib":null},"ok":true}
+Reglas: usa null para lo que no aparezca y no inventes valores. Si la etiqueta da valores por ración, usa esa ración como unidad. Calcula perUnit a partir de per100 y grams si hace falta. "ok" es false si no se ve la tabla nutricional.`;
+  const ctl=new AbortController();sheetCtx.ctl=ctl;
+  out.innerHTML=thinking('Leyendo la etiqueta…');
+  document.getElementById('scBtns').querySelectorAll('button').forEach(b=>b.disabled=true);
+  try{
+    let r;try{r=await s.json(prompt,{signal:ctl.signal,images:imgs})}catch(e){if(e&&e.code==='image_rejected'&&imgs.length>1)r=await s.json(prompt,{signal:ctl.signal,images:imgs.slice(0,1)});else throw e}
+    if(!sheetCtx||sheetCtx.kind!=='scan')return;
+    const p100=r&&r.per100||{},pu=r&&r.perUnit||{},gr=num(r&&r.grams);
+    const calc=k=>pu[k]!=null?num(pu[k]):(p100[k]!=null&&gr?num(p100[k])*gr/100:null);
+    let unit=r&&r.unit?String(r.unit):'100 g',kcal=calc('kcal'),p=calc('p'),fib=calc('fib'),hc=calc('carbs'),gfat=calc('fat');
+    if(kcal==null&&p100.kcal!=null){unit='100 g';kcal=num(p100.kcal);p=num(p100.p);fib=num(p100.fib);hc=num(p100.carbs);gfat=num(p100.fat)}
+    const name=[r&&r.brand,r&&r.name].filter(Boolean).join(' ')||'Producto';
+    const extra={brand:r&&r.brand||null,freq:'habitual',per100:{kcal:num(p100.kcal),p:num(p100.p),hc:num(p100.carbs),gr:num(p100.fat),fib:num(p100.fib)}};
+    const info=`<p class="note">${r&&r.ok===false?'No se veía bien la tabla nutricional: revisa los valores. ':''}Por 100 g: ${p100.kcal??'–'} kcal · ${p100.p??'–'} P · ${p100.carbs??'–'} HC · ${p100.fat??'–'} G · ${p100.fib??'–'} F</p>`;
+    openSheet(foodForm({name,unit,kcal:kcal!=null?Math.round(kcal):null,p:p!=null?Math.round(p*10)/10:null,fib:fib!=null?Math.round(fib*10)/10:null,hc:hc!=null?Math.round(hc*10)/10:null,gr:gfat!=null?Math.round(gfat*10)/10:null,grams:gr},'Revisa y guarda',info)+
+      `<div class="btnrow"><button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="foodSave">Guardar en mis alimentos</button></div>`,{id:null,thenAdd:false,extra});
+  }catch(e){
+    if(!sheetCtx||sheetCtx.kind!=='scan')return;
+    out.innerHTML=aiErr(e)?`<p class="note">${aiErr(e)}</p>`:'';
+    document.getElementById('scBtns').querySelectorAll('button').forEach(b=>b.disabled=false);
+  }
+}
+
+async function howDay(){
+  const out=document.getElementById('howOut');if(!out)return;
+  const s=await getSample();if(!s){out.innerHTML='<p class="note">Añade tu clave de Anthropic en Progreso → Cuenta e IA.</p>';return}
+  const d=day(),t=totals(d),g=S.goals,now=new Date();
+  const meals=d.meals.map(m=>`${m.slot}: ${m.name}${m.grams?' ('+r0(m.grams)+' g)':m.qty&&m.qty!==1?' ×'+m.qty:''} = ${r0(m.kcal)} kcal, ${r0(m.p)} P, ${r0(m.hc)} HC, ${r0(m.gr)} G, ${r0(m.fib)} F`).join('\n')||'(nada registrado)';
+  const prompt=`Eres el asistente de nutrición de Rubén. Día: ${S.date}${S.date===today()?', hora actual '+now.getHours()+':'+pad(now.getMinutes()):''}.
+${aiMemText()}
+Objetivos: ${g.kcal} kcal, ${g.p} g proteína, ${g.hc||245} g hidratos, ${g.fat||80} g grasas, ${g.fib} g fibra, ${r0(g.water/1000*10)/10} L agua.
+Consumido confirmado hoy:
+${meals}
+Totales: Calorías: ${r0(t.kcal)} kcal | Proteína: ${r0(t.p)} g | Hidratos: ${r0(t.hc)} g | Grasas: ${r0(t.gr)} g | Fibra: ${r0(t.fib)} g. Agua: ${r0(d.water)} ml. Pasos: ${d.steps||0}. Entrenos: ${d.workouts.map(w=>w.type+' '+(w.min||0)+' min').join(', ')||'ninguno'}.
+Escribe en español, sin emojis, máximo 5 líneas: 1) la línea de macros con el formato de sus reglas, 2) cómo va el día en una frase, 3) qué le conviene comer después, usando productos o recetas de su base de datos si encajan: ${S.foods.filter(f=>f.kcal!=null).map(f=>f.name).join(', ')}.`;
+  const ctl=new AbortController();S.howCtl&&S.howCtl.abort();S.howCtl=ctl;
+  out.innerHTML='<div class="thinking"><i></i><span>Pensando…</span></div>';
+  try{const r=await s(prompt,{signal:ctl.signal,cache:false,onText:({text})=>{const o=document.getElementById('howOut');if(o)o.innerHTML=`<p class="advice">${esc(text)}</p>`}});
+    S.howTxt=r.text;S.howDate=S.date;const o=document.getElementById('howOut');if(o)o.innerHTML=`<p class="advice">${esc(r.text)}</p>`}
+  catch(e){const o=document.getElementById('howOut');if(o)o.innerHTML=e.text?`<p class="advice">${esc(e.text)}</p>`:`<p class="note">${aiErr(e)||''}</p>`}
+}
+function openAiMem(){const a=S.ai||DEF_AI;
+  openSheet(`<h3>Memoria de la IA</h3><p class="note" style="margin-top:-8px">Lo que la IA tiene en cuenta al estimar tus comidas y aconsejarte. Una línea por dato.</p>
+    <div class="field"><label for="am-r">Reglas</label><textarea id="am-r" rows="7">${esc((a.rules||[]).join('\n'))}</textarea></div>
+    <div class="field"><label for="am-t">Comidas típicas</label><textarea id="am-t" rows="6">${esc((a.typical||[]).join('\n'))}</textarea></div>
+    <div class="field"><label for="am-n">Otros datos</label><textarea id="am-n" rows="5">${esc((a.notes||[]).join('\n'))}</textarea></div>
+    <div class="btnrow"><button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="aiMemSave">Guardar</button></div>`)}
+function bar(label,val,goal,color,unit,dec){
+  const pct=Math.min(100,goal?val/goal*100:0);
+  return `<div class="bar"><div class="row"><span>${label}</span><span><b>${dec?fmt1(val):fmt(val)}</b> / ${dec?fmt1(goal):fmt(goal)} ${unit}</span></div><div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+}
+
+function macroLine(t){return `Calorías: ${fmt(t.kcal)} kcal | Proteína: ${fmt(t.p)} g | Hidratos: ${fmt(t.hc)} g | Grasas: ${fmt(t.gr)} g | Fibra: ${fmt(t.fib)} g`}
+function vHoy(){
+  const d=day(), t=totals(d), g=S.goals;
+  const left=g.kcal-t.kcal, pct=Math.min(1,t.kcal/g.kcal), C=2*Math.PI*56;
+  const over=t.kcal>g.kcal;
+  const pr=progress(S.date);
+  let h=`<section class="card"><div class="hero">
+    <div class="ring"><svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="56" fill="none" stroke="var(--chip)" stroke-width="12"/>
+    <circle cx="66" cy="66" r="56" fill="none" stroke="${over?'var(--warn)':'var(--accent)'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct)}"/></svg>
+    <div class="c"><div><div class="big">${fmt(Math.abs(left))}</div><div class="lbl">${over?'kcal de más':'kcal restantes'}</div></div></div></div>
+    <div class="bars">
+      ${bar('Kcal',t.kcal,g.kcal,over?'var(--warn)':'var(--accent)','')}
+      ${bar('Proteína',t.p,g.p,'var(--prot)','g')}
+      ${bar('Hidratos',t.hc,g.hc||245,'var(--water)','g')}
+      ${bar('Grasas',t.gr,g.fat||80,'var(--muted)','g')}
+      ${bar('Fibra',t.fib,g.fib,'var(--fib)','g')}
+    </div></div>
+    <p class="macro" id="macroLine">${macroLine(t)}</p>
+    <div class="stats">
+      <div class="stat"><div class="v">${fmt1(d.water/1000)} L</div><div class="k">Agua</div></div>
+      <div class="stat"><div class="v">${fmt(d.steps)}</div><div class="k">Pasos</div></div>
+      <div class="stat"><div class="v">${fmt(burned(d))}</div><div class="k">Kcal deporte</div></div>
+    </div></section>`;
+  h+=`<section class="card"><h2>¿Cómo va el día? <button class="act" data-act="howDay">${S.howTxt&&S.howDate===S.date?'Actualizar':'Preguntar a la IA'}</button></h2>
+    <div id="howOut">${S.howTxt&&S.howDate===S.date?`<p class="advice">${esc(S.howTxt)}</p>`:'<p class="empty">Te resume lo que llevas y qué te conviene comer después.</p>'}</div></section>`;
+  h+=`<section class="card"><h2>Checklist del día <span class="pill ${pr.done===pr.total?'full':''}">${pr.done}/${pr.total}</span></h2>`;
+  const wOk=d.water>=g.water;
+  h+=`<div class="chk ${wOk?'done':''}"><span class="box ${wOk?'on':''}" aria-hidden="true">${wOk?TICK:''}</span>
+    <div class="t"><span>Agua ${fmt1(g.water/1000)} L</span><small>${fmt1(d.water/1000)} L bebidos</small>
+    <div class="mini"><button class="mbtn" data-act="water" data-v="-250">−250</button><button class="mbtn pri" data-act="water" data-v="250">+250 ml</button><button class="mbtn pri" data-act="water" data-v="500">+500 ml</button></div></div></div>`;
+  itemsFor(S.date).forEach(c=>{
+    const on=!!d.checks[c.id];
+    h+=`<div class="chk ${on?'done':''}"><button class="box ${on?'on':''}" data-act="chk" data-id="${c.id}" aria-pressed="${on}" aria-label="${esc(c.label)}">${on?TICK:''}</button>
+      <div class="t"><span>${esc(c.label)}</span>${c.note?`<small>${esc(c.note)}</small>`:''}
+      ${c.weigh?`<div class="mini"><input class="winput" id="w-${c.id}" inputmode="decimal" placeholder="kg" value="${d.weight!=null?fmt1(d.weight):''}" data-chg="weight" aria-label="Peso en kg"></div>`:''}</div></div>`;
+  });
+  h+=`<div class="btnrow"><button class="btn" data-act="tab" data-v="comida">+ Comida</button><button class="btn" data-act="tab" data-v="deporte">+ Deporte</button></div></section>`;
+  return h;
+}
+
+const HAB=/habitual|diario|frecuente/i;
+const CATS=[['hab','Habituales'],['receta','Recetas y tuppers'],['lácteo','Lácteos'],['proteína','Proteína'],['pan','Pan'],['carbohidrato','Hidratos'],['snack','Snacks'],['bebida','Bebidas'],['salsa','Salsas'],['todo','Todo']];
+function mtxt(f){return `<b>${fmt(f.kcal)}</b> kcal · <b>${fmt(f.p)}</b> P${f.hc!=null?` · ${fmt(f.hc)} HC`:''}${f.gr!=null?` · ${fmt(f.gr)} G`:''}`}
+function foodCard(f){
+  const todo=f.kcal==null;
+  return `<button class="food" data-act="addFood" data-id="${f.id}"><span class="n">${esc(f.name)}${f.est?' <span class="estb">≈</span>':''}</span>
+    ${todo?'<span class="todo">Completar valores</span>':`<span class="m">${mtxt(f)}</span>`}
+    <span class="m">por ${esc(f.unit||'ración')}${f.brand?' · '+esc(f.brand):''}</span></button>`;
+}
+function norm(x){return String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function foodList(){
+  const q=norm(S.fq).trim();
+  let L=S.foods;
+  if(q)L=L.filter(f=>norm(f.name+' '+(f.brand||'')+' '+(f.cat||'')).includes(q));
+  else if(S.fcat==='hab')L=L.filter(f=>!f.pantry&&f.kcal!=null&&(HAB.test(f.freq||'')||!f.freq));
+  else if(S.fcat!=='todo')L=L.filter(f=>f.cat===S.fcat);
+  if(!q&&S.fcat!=='todo')L=L.filter(f=>!f.pantry);
+  return L;
+}
+function gridHtml(){const L=foodList();return L.length?L.map(foodCard).join(''):'<p class="empty">Nada con ese nombre. Usa “Añadir a mano” o escanéalo desde Inicio.</p>'}
+function vComida(){
+  const d=day(), t=totals(d);
+  let h=`<section class="card"><h2>Añadir <button class="act" data-act="foods">Mis alimentos (${S.foods.length})</button></h2>
+    <input class="search" id="fq" type="search" placeholder="Buscar: cottage, tikka, pan…" value="${esc(S.fq)}" aria-label="Buscar alimento">
+    <div class="chips">${CATS.map(([k,l])=>`<button data-act="fcat" data-v="${k}" class="${S.fcat===k&&!S.fq?'on':''}">${l}</button>`).join('')}</div>
+    <div class="grid" id="fgrid">${gridHtml()}</div>
+    <div class="btnrow"><button class="btn pri" data-act="photo">Foto + mensaje</button><button class="btn" data-act="manual">Añadir a mano</button></div></section>`;
+  h+=`<section class="card"><h2>Registro del día</h2><p class="macro" style="margin:0 0 6px">${macroLine(t)}</p>`;
+  if(!d.meals.length)h+=`<p class="empty">Aún no hay comidas. Toca un alimento de arriba para sumarlo.</p>`;
+  [...SLOTS,'Importado'].forEach(s=>{
+    const ms=d.meals.filter(m=>m.slot===s||(s==='Importado'&&!SLOTS.includes(m.slot))); if(!ms.length)return;
+    const st=totals({meals:ms});
+    h+=`<div class="slot"><h3><span>${s}</span><span class="num">${fmt(st.kcal)} kcal</span></h3>`+ms.map(m=>`<div class="item"><div class="t">${esc(m.name)}<small>${m.grams?fmt(m.grams)+' g · ':m.qty&&m.qty!==1?fmt1(m.qty)+' × · ':''}${fmt(m.p)} P · ${fmt(m.hc)} HC · ${fmt(m.gr)} G${m.fib?` · ${fmt(m.fib)} F`:''}${m.ai?' · IA':''}</small></div><span class="k">${fmt(m.kcal)}</span><button class="del" data-act="delMeal" data-id="${m.id}" aria-label="Quitar ${esc(m.name)}">×</button></div>`).join('')+`</div>`;
+  });
+  return h+`</section>`;
+}
+
+function vDeporte(){
+  const d=day();
+  let h=`<section class="card"><h2>Pasos <span class="pill ${d.steps>=S.goals.steps?'full':''}">objetivo ${fmt(S.goals.steps)}</span></h2>
+    <div class="wbig"><input id="steps" inputmode="numeric" value="${d.steps||''}" placeholder="0" data-chg="steps" aria-label="Pasos de hoy">
+    <button class="mbtn" data-act="steps" data-v="1000">+1.000</button><button class="mbtn" data-act="steps" data-v="5000">+5.000</button></div>
+    <div class="track" style="margin-top:12px"><div class="fill" style="width:${Math.min(100,d.steps/S.goals.steps*100)}%;background:var(--accent)"></div></div></section>`;
+  h+=`<section class="card"><h2>Entrenos de hoy</h2>`;
+  if(!d.workouts.length)h+=`<p class="empty">Sin entrenos registrados.</p>`;
+  h+=d.workouts.map(w=>`<div class="item"><span class="tag">${esc(w.type)}</span><div class="t">${esc(w.name||w.type)}<small>${w.min?fmt(w.min)+' min':''}${w.kcal?` · ${fmt(w.kcal)} kcal`:''}${w.note?' · '+esc(w.note):''}</small></div><button class="del" data-act="delW" data-id="${w.id}" aria-label="Quitar entreno">×</button></div>`).join('');
+  h+=`<div class="btnrow"><button class="btn pri" data-act="workout" data-v="Gimnasio">+ Gimnasio</button><button class="btn pri" data-act="workout" data-v="Cardio">+ Cardio</button></div></section>`;
+  // semana
+  let mins=0,ses=0,kc=0,stp=0; const mon=(()=>{let k=S.date;while(parse(k).getDay()!==1)k=addDays(k,-1);return k})();
+  for(let i=0;i<7;i++){const k=addDays(mon,i);const x=day(k);x.workouts.forEach(w=>{mins+=w.min||0;kc+=w.kcal||0;ses++});stp+=x.steps||0}
+  h+=`<section class="card"><h2>Esta semana</h2>
+    <div class="kv"><span>Sesiones</span><b>${ses}</b></div><div class="kv"><span>Minutos entrenando</span><b>${fmt(mins)}</b></div>
+    <div class="kv"><span>Kcal de deporte</span><b>${fmt(kc)}</b></div><div class="kv"><span>Pasos totales</span><b>${fmt(stp)}</b></div></section>`;
+  return h;
+}
+
+function weightChart(){
+  const pts=Object.keys(S.days).filter(k=>S.days[k]&&S.days[k].weight!=null).sort().map(k=>({k,w:S.days[k].weight}));
+  if(pts.length<2)return `<p class="empty">${pts.length?'Con el próximo pesaje verás la curva.':'Anota tu peso en la checklist del lunes y aquí verás la evolución.'}</p>`;
+  const W=340,H=170,L=34,R=10,T=12,B=24;
+  const t0=parse(pts[0].k).getTime(),t1=parse(pts[pts.length-1].k).getTime();
+  let lo=Math.min(...pts.map(p=>p.w)),hi=Math.max(...pts.map(p=>p.w));
+  lo=Math.floor(lo-0.5);hi=Math.ceil(hi+0.5);
+  const x=k=>L+(W-L-R)*((parse(k).getTime()-t0)/(t1-t0||1));
+  const y=w=>T+(H-T-B)*(1-(w-lo)/(hi-lo));
+  const ticks=[lo,(lo+hi)/2,hi];
+  const path=pts.map((p,i)=>(i?'L':'M')+x(p.k).toFixed(1)+' '+y(p.w).toFixed(1)).join(' ');
+  const area=path+` L${x(pts[pts.length-1].k).toFixed(1)} ${H-B} L${x(pts[0].k).toFixed(1)} ${H-B} Z`;
+  const f=k=>parse(k).toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+  const last=pts[pts.length-1];
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del peso">
+    <g class="grid">${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${fmt1(v)}</text>`).join('')}</g>
+    <path d="${area}" fill="var(--accent)" opacity=".12"/>
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${pts.map(p=>`<circle cx="${x(p.k)}" cy="${y(p.w)}" r="3" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>`).join('')}
+    <circle cx="${x(last.k)}" cy="${y(last.w)}" r="5" fill="var(--accent)"/>
+    <text x="${L}" y="${H-6}">${f(pts[0].k)}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${f(last.k)}</text></svg>`;
+}
+function kcalChart(){
+  const W=340,H=184,L=6,R=6,T=18,B=42,n=14,g=S.goals.kcal;
+  const ks=[...Array(n)].map((_,i)=>addDays(S.date,i-n+1));
+  const tt=ks.map(k=>totals(day(k))),vals=tt.map(t=>t.kcal);
+  const max=Math.max(g*1.25,...vals);
+  const bw=(W-L-R)/n, y=v=>T+(H-T-B)*(1-v/max);
+  const kf=v=>v>=1000?(Math.round(v/100)/10).toLocaleString('es-ES',{minimumFractionDigits:1}):String(Math.round(v));
+  const svg=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Kcal de los últimos 14 días">
+    <line x1="${L}" x2="${W-R}" y1="${y(g)}" y2="${y(g)}" stroke="var(--muted)" stroke-dasharray="4 4"/>
+    ${vals.map((v,i)=>{const bx=L+i*bw+bw*.16,w=bw*.68,yy=y(v),cx=bx+w/2,d=parse(ks[i]);const pOk=tt[i].p>=S.goals.p;
+      return `<rect x="${bx}" y="${yy}" width="${w}" height="${Math.max(0,H-B-yy)}" rx="3" fill="${v>g*1.05?'var(--warn)':'var(--accent)'}" opacity="${v?1:.25}"/>
+      ${v?`<text x="${cx}" y="${yy-5}" text-anchor="middle" class="vl">${kf(v)}</text>`:''}
+      <text x="${cx}" y="${H-19}" text-anchor="middle">${'DLMXJVS'[d.getDay()]}</text>
+      <text x="${cx}" y="${H-7}" text-anchor="middle" class="dn">${d.getDate()}</text>
+      ${pOk?`<circle cx="${cx}" cy="${H-B+6}" r="2.5" fill="var(--prot)"/>`:''}`}).join('')}
+  </svg>`;
+  const withData=ks.map((k,i)=>({k,t:tt[i]})).filter(x=>x.t.kcal>0);
+  const avg=withData.length?withData.reduce((a,x)=>a+x.t.kcal,0)/withData.length:0;
+  const wP=withData.filter(x=>x.t.p>0);const avgP=wP.length?wP.reduce((a,x)=>a+x.t.p,0)/wP.length:0;
+  const rows=ks.map((k,i)=>({k,t:tt[i]})).reverse().map(({k,t})=>{
+    const d=parse(k),lbl=d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
+    const diff=t.kcal-g;
+    return `<button class="drow" data-act="goDay" data-v="${k}"><span class="dl">${esc(lbl)}</span>
+      ${t.kcal?`<span class="dp">${t.p?fmt(t.p)+' P':''}</span><b>${fmt(t.kcal)}</b><span class="dd2 ${diff>g*.05?'over':diff<-g*.15?'under':'ok'}">${diff>0?'+':diff<0?'−':''}${fmt(Math.abs(diff))}</span>`:'<span class="dp">sin registro</span><b>–</b><span class="dd2"></span>'}</button>`}).join('');
+  return svg+`<div class="legend"><span><i style="background:var(--accent)"></i>Dentro de objetivo</span><span><i style="background:var(--warn)"></i>Por encima</span><span><i style="background:var(--prot);border-radius:50%"></i>Proteína cumplida</span><span>Cifras en miles de kcal</span></div>
+    <div class="avg"><span>Media de ${withData.length} ${withData.length===1?'día':'días'} con registro</span><b>${fmt(avg)} kcal${avgP?` · ${fmt(avgP)} P`:''}</b></div>
+    <div class="dlist">${rows}</div>`;
+}
+function accountCard(){
+  const k=aiKey(),m=aiModel();
+  return `<section class="card"><h2>Cuenta e IA</h2>
+    <div class="kv"><span>Cuenta</span><b style="font-family:var(--f-body);font-size:14px">${esc(sess&&sess.user?sess.user.email:'—')}</b></div>
+    <div class="field" style="margin-top:12px"><label for="aiK">Clave de API de Anthropic</label><input id="aiK" type="password" autocomplete="off" placeholder="sk-ant-…" value="${esc(k)}"></div>
+    <div class="field"><label for="aiM">Modelo para fotos y consejos</label><select id="aiM">${MODELS.map(([v,l])=>`<option value="${v}" ${v===m?'selected':''}>${l}</option>`).join('')}</select></div>
+    <p class="note" style="margin-top:0">La clave se guarda solo en este dispositivo. Cada foto cuesta unos céntimos de tu saldo de Anthropic.</p>
+    <div id="aiTest"></div>
+    <div class="btnrow"><button class="btn pri" data-act="aiSave">Guardar clave</button><button class="btn" data-act="aiTestGo">Probar</button></div>
+    <div class="btnrow"><button class="btn danger" data-act="logout">Cerrar sesión</button></div></section>`;
+}
+function lastBackup(){try{return localStorage.getItem('midia:lastBackup')}catch(e){return null}}
+function backupCard(){
+  const lb=lastBackup(),nd=Object.keys(S.days).filter(k=>S.days[k]).length;
+  let pill='<span class="pill" style="color:var(--warn)">sin copias</span>';
+  if(lb){const ago=Math.floor((parse(today())-parse(lb))/864e5);pill=`<span class="pill ${ago<=7?'full':''}" ${ago>7?'style="color:var(--warn)"':''}>${ago===0?'hoy':ago===1?'ayer':'hace '+ago+' días'}</span>`}
+  return `<section class="card"><h2>Copia de seguridad ${pill}</h2>
+    <p class="note" style="margin-top:0">Tus datos ya se guardan en tu cuenta online. Además puedes descargar un archivo con todos ellos (${nd} ${nd===1?'día':'días'}, ${S.foods.length} alimentos, objetivos, checklist y memoria de la IA) y guárdalo en este dispositivo. Sirve como respaldo y para importar tu copia de la app de Claude.</p>
+    <div id="bkOut"></div>
+    <div class="btnrow"><button class="btn pri" data-act="bkSave">Descargar copia</button><label class="btn" for="bkIn" style="text-align:center">Restaurar copia</label></div>
+    <input type="file" id="bkIn" accept=".json,application/json" hidden></section>`;
+}
+function backupData(){return {app:'Mi Día a Día',version:1,exportedAt:new Date().toISOString(),goals:S.goals,foods:S.foods,checklist:S.checklist,ai:S.ai,days:S.days}}
+async function bkSave(){
+  const out=document.getElementById('bkOut');const json=JSON.stringify(backupData(),null,1);const fn=`midia-copia-${today()}.json`;
+  const mark=()=>{try{localStorage.setItem('midia:lastBackup',today())}catch(e){}};
+  try{const file=new File([json],fn,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Copia Mi Día a Día'});mark();render();toast('Copia lista: guárdala en Archivos o iCloud');return}}
+  catch(e){if(e&&e.name==='AbortError'){toast('Copia cancelada');return}}
+  try{const url=URL.createObjectURL(new Blob([json],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);mark();render();toast('Copia descargada');return}catch(e){}
+  // alternativa: copiar el texto
+  if(out)out.innerHTML=`<p class="note">La descarga no está disponible aquí. Copia este texto y guárdalo en un archivo .json:</p><textarea id="bkTxt" rows="5" readonly style="width:100%;font-size:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:8px">${esc(json)}</textarea><div class="btnrow"><button class="btn" data-act="bkCopy">Copiar</button></div>`;
+}
+function bkRead(file){
+  const fr=new FileReader();
+  fr.onload=()=>{let d;try{d=JSON.parse(fr.result)}catch(e){toast('Ese archivo no es una copia válida');return}
+    if(!d||d.app!=='Mi Día a Día'||typeof d.days!=='object'){toast('Ese archivo no es una copia de esta app');return}
+    S.pendingRestore=d;const nd=Object.keys(d.days||{}).length,nf=(d.foods||[]).length;
+    const when=d.exportedAt?new Date(d.exportedAt).toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}):'fecha desconocida';
+    document.getElementById('bkOut').innerHTML=`<div class="warn" role="alert"><b>⚠ ¿Restaurar la copia del ${esc(when)}?</b><span>Tiene ${nd} ${nd===1?'día':'días'} y ${nf} alimentos. Se sustituirán tus objetivos, alimentos, checklist y memoria de la IA, y los días que estén en la copia. Los días que no estén en la copia se mantienen.</span><div class="btnrow"><button class="btn" data-act="bkNo">Cancelar</button><button class="btn danger-fill" data-act="bkYes">Sí, restaurar</button></div></div>`;};
+  fr.readAsText(file);
+}
+function bkApply(){
+  const d=S.pendingRestore;if(!d)return;S.pendingRestore=null;
+  if(d.goals){S.goals={...DEF_GOALS,...d.goals};save('cfg/goals',S.goals)}
+  if(Array.isArray(d.foods)){S.foods=d.foods;save('cfg/foods',{items:S.foods})}
+  if(Array.isArray(d.checklist)){S.checklist=d.checklist;save('cfg/checklist',{items:S.checklist})}
+  if(d.ai){S.ai={...DEF_AI,...d.ai};save('cfg/ai',S.ai)}
+  let n=0;Object.entries(d.days||{}).forEach(([k,v])=>{if(/^\d{4}-\d{2}-\d{2}$/.test(k)&&v&&typeof v==='object'){S.days[k]={...blank(),...v};save('days/'+k,S.days[k]);n++}});
+  render();toast(`Copia restaurada: ${n} días`);
+}
+function vProgreso(){
+  const pts=Object.keys(S.days).filter(k=>S.days[k]&&S.days[k].weight!=null).sort();
+  let wInfo='';
+  if(pts.length){const a=S.days[pts[0]].weight,b=S.days[pts[pts.length-1]].weight;
+    wInfo=`<span class="pill ${b<a?'full':''}">${b<=a?'−':'+'}${fmt1(Math.abs(b-a))} kg</span>`}
+  let h=`<section class="card"><h2>Peso (lunes) ${wInfo}</h2>${weightChart()}</section>`;
+  h+=`<section class="card"><h2>Kcal · últimos 14 días</h2>${kcalChart()}</section>`;
+  // checklist heat + racha
+  const ks=[...Array(14)].map((_,i)=>addDays(S.date,i-13));
+  let streak=0;{let k=today();const p=progress(k);if(p.done<p.total)k=addDays(k,-1);while(true){const q=progress(k);if(q.done===q.total&&S.days[k]){streak++;k=addDays(k,-1)}else break;if(streak>999)break}}
+  h+=`<section class="card"><h2>Checklist · 14 días <span class="pill ${streak?'full':''}">racha ${streak} ${streak===1?'día':'días'}</span></h2>
+    <div class="heat">${ks.map(k=>{const p=progress(k);const r=S.days[k]?p.done/p.total:0;return `<div title="${k}: ${p.done}/${p.total}" style="background:${r?`color-mix(in srgb, var(--ok) ${Math.round(25+r*75)}%, var(--chip))`:'var(--chip)'}"></div>`}).join('')}</div></section>`;
+  const g=S.goals;
+  h+=`<section class="card"><h2>Objetivos <button class="act" data-act="goals">Editar</button></h2>
+    <div class="kv"><span>Kcal</span><b>${fmt(g.kcal)}</b></div><div class="kv"><span>Proteína</span><b>${fmt(g.p)} g</b></div>
+    <div class="kv"><span>Hidratos</span><b>${fmt(g.hc||245)} g</b></div><div class="kv"><span>Grasas</span><b>${fmt(g.fat||80)} g</b></div>
+    <div class="kv"><span>Fibra</span><b>${fmt(g.fib)} g</b></div><div class="kv"><span>Agua</span><b>${fmt1(g.water/1000)} L</b></div>
+    <div class="kv"><span>Pasos</span><b>${fmt(g.steps)}</b></div>
+    <div class="btnrow"><button class="btn" data-act="clEdit">Editar checklist</button><button class="btn" data-act="foods">Mis alimentos</button><button class="btn" data-act="aiMem">Memoria de la IA</button></div></section>`;
+  h+=backupCard();
+  h+=accountCard();
+  return h;
+}
+
+/* ---------- hojas ---------- */
+function openSheet(html,ctx){if(sheetCtx&&sheetCtx.ctl)try{sheetCtx.ctl.abort()}catch(e){}sheetCtx=ctx||{};document.getElementById('sheetHost').innerHTML=`<div class="backdrop" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true"><div class="in">${html}</div></div>`;const f=document.querySelector('.sheet input,.sheet select');if(f&&!('ontouchstart' in window))f.focus()}
+function closeSheet(){if(sheetCtx&&sheetCtx.ctl)try{sheetCtx.ctl.abort()}catch(e){}document.getElementById('sheetHost').innerHTML='';sheetCtx=null}
+function val(id){const e=document.getElementById(id);return e?e.value:''}
+function defSlot(){const h=new Date().getHours();return h<11?'Desayuno':h<16?'Comida':h<19?'Merienda':h<23?'Cena':'Snack'}
+function slotSel(id){return `<select id="${id}">${SLOTS.map(s=>`<option ${s===defSlot()?'selected':''}>${s}</option>`).join('')}</select>`}
+function toast(msg,action){const t=document.getElementById('toastHost');toast._fn=action?action.fn:null;t.innerHTML=`<div class="toast" role="status">${esc(msg)}${action?`<button data-act="toastAct">${esc(action.label)}</button>`:''}</div>`;clearTimeout(toast._t);toast._t=setTimeout(()=>{t.innerHTML='';toast._fn=null},action?5000:2200)}
+
+function openQty(f){
+  const canG=!!(f.per100&&f.per100.kcal!=null)||!!f.grams;
+  openSheet(`<h3>${esc(f.name)}</h3>
+    <p class="empty" style="margin-top:-8px">${mtxt(f).replace(/<\/?b>/g,'')}${f.fib!=null?` · ${fmt(f.fib)} F`:''} por ${esc(f.unit||'ración')}${f.est?' · valores estimados':''}</p>
+    ${f.note?`<p class="note" style="margin-top:-6px">${esc(f.note)}</p>`:''}
+    <div class="field"><label>Cantidad</label><div class="seg" id="qseg">${[0.5,1,1.5,2,3].map(q=>`<button data-act="q" data-v="${q}" class="${q===1?'on':''}">${fmt1(q).replace(',0','')}</button>`).join('')}</div></div>
+    ${canG?`<div class="field"><label for="qg">O en gramos${f.grams?` (1 = ${fmt1(f.grams).replace(',0','')} g)`:''}</label><input id="qg" inputmode="decimal" placeholder="g"></div>`:''}
+    <div class="field"><label for="qslot">Momento</label>${slotSel('qslot')}</div>
+    <div class="btnrow"><button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="qtyAdd">Añadir</button></div>`,{food:f,qty:1});
+}
+function portion(f,qty,grams){
+  const k=['kcal','p','hc','gr','fib'],o={};
+  if(grams&&f.per100&&f.per100.kcal!=null){k.forEach(x=>{const v=f.per100[x]!=null?f.per100[x]:(f[x]!=null&&f.grams?f[x]/f.grams*100:null);o[x]=v!=null?v*grams/100:0});o.qty=f.grams?grams/f.grams:null;o.grams=grams;return o}
+  if(grams&&f.grams)qty=grams/f.grams;
+  k.forEach(x=>o[x]=(f[x]||0)*qty);o.qty=qty;if(grams)o.grams=grams;return o;
+}
+function foodForm(f,title,extra){
+  f=f||{};
+  const p1=f.per100||{};
+  return `<h3>${title}</h3>
+    <div class="field"><label for="fn">Nombre</label><input id="fn" value="${esc(f.name||'')}" placeholder="Ej. Yogur griego proteico"></div>
+    <div class="f3"><div class="field" style="grid-column:span 2"><label for="fu">Unidad</label><input id="fu" value="${esc(f.unit||'ración')}" placeholder="tupper, ración, 100 g…"></div>
+    <div class="field"><label for="fg">Gramos</label><input id="fg" inputmode="decimal" value="${f.grams??''}" placeholder="opcional"></div></div>
+    <div class="f3"><div class="field"><label for="fk">Kcal</label><input id="fk" inputmode="decimal" value="${f.kcal??''}"></div>
+    <div class="field"><label for="fp">Prot. g</label><input id="fp" inputmode="decimal" value="${f.p??''}"></div>
+    <div class="field"><label for="ff">Fibra g</label><input id="ff" inputmode="decimal" value="${f.fib??''}"></div></div>
+    <div class="f3"><div class="field"><label for="fh">Hidratos g</label><input id="fh" inputmode="decimal" value="${f.hc??''}"></div>
+    <div class="field"><label for="fgr">Grasas g</label><input id="fgr" inputmode="decimal" value="${f.gr??''}"></div><div></div></div>
+    ${f.note!==undefined||f.id?`<div class="field"><label for="fno">Notas para la IA</label><textarea id="fno" rows="2" placeholder="Cantidad habitual, cómo lo tomas…">${esc(f.note||'')}</textarea></div>`:''}
+    ${extra||''}`;
+}
+function readFood(){const o={name:val('fn').trim(),unit:val('fu').trim()||'ración',grams:num(val('fg')),kcal:num(val('fk')),p:num(val('fp'))??0,hc:num(val('fh')),gr:num(val('fgr')),fib:num(val('ff'))};
+  if(document.getElementById('fno'))o.note=val('fno').trim();if(o.grams==null)delete o.grams;return o}
+function saveFoods(){save('cfg/foods',{items:S.foods})}
+function foodsRows(q){q=norm(q||'');const L=S.foods.filter(f=>!q||norm(f.name+' '+(f.brand||'')).includes(q));
+  return L.map(f=>`<div class="item"><div class="t">${esc(f.name)}${f.brand?` <small style="display:inline">· ${esc(f.brand)}</small>`:''}<small>${f.kcal==null?(f.pantry?'En despensa · sin valores':'Faltan valores'):`${fmt(f.kcal)} kcal · ${fmt(f.p)} P${f.est?' · estimado':''}`} · por ${esc(f.unit||'ración')}</small></div><button class="mbtn" data-act="foodEdit" data-id="${f.id}">Editar</button></div>`).join('')||'<p class="empty">Sin resultados.</p>'}
+function openFoods(){
+  openSheet(`<h3>Mis alimentos</h3><input class="search" id="mfq" type="search" placeholder="Buscar" aria-label="Buscar en mis alimentos"><div id="mfl">${foodsRows('')}</div>
+    <div class="btnrow"><button class="btn" data-act="close">Cerrar</button><button class="btn pri" data-act="foodNew">Nuevo alimento</button></div>`);
+}
+function openFoodEdit(id,thenAdd){
+  const f=S.foods.find(x=>x.id===id);
+  openSheet(foodForm(f,thenAdd?'Completa los valores':'Editar alimento')+
+    `<div class="btnrow">${f?`<button class="btn danger" data-act="foodDel">Borrar</button>`:''}<button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="foodSave">${thenAdd?'Guardar y añadir':'Guardar'}</button></div>`,{id,thenAdd});
+}
+function openManual(){
+  openSheet(foodForm(null,'Añadir a mano',`<div class="field"><label for="mslot">Momento</label>${slotSel('mslot')}</div>
+    <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" id="mkeep"> Guardar en mis alimentos</label>`)+
+    `<div class="btnrow"><button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="manualSave">Añadir</button></div>`);
+}
+function openWorkout(type){
+  openSheet(`<h3>${type}</h3>
+    <div class="field"><label for="wn">${type==='Gimnasio'?'Sesión':'Actividad'}</label><input id="wn" placeholder="${type==='Gimnasio'?'Ej. Pierna, Torso, Full body':'Ej. Cinta, Bici, Correr'}"></div>
+    <div class="f3"><div class="field"><label for="wm">Minutos</label><input id="wm" inputmode="numeric"></div>
+    <div class="field"><label for="wk">Kcal</label><input id="wk" inputmode="numeric" placeholder="opcional"></div><div></div></div>
+    <div class="field"><label for="wo">Notas</label><textarea id="wo" rows="2" placeholder="${type==='Gimnasio'?'Ejercicios, series, pesos…':'Distancia, ritmo…'}"></textarea></div>
+    <div class="btnrow"><button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="wSave">Guardar</button></div>`,{type});
+}
+function openGoals(){
+  const g=S.goals;
+  openSheet(`<h3>Objetivos diarios</h3>
+    <div class="f3"><div class="field"><label for="gk">Kcal</label><input id="gk" inputmode="numeric" value="${g.kcal}"></div>
+    <div class="field"><label for="gp">Prot. g</label><input id="gp" inputmode="numeric" value="${g.p}"></div>
+    <div class="field"><label for="gf">Fibra g</label><input id="gf" inputmode="numeric" value="${g.fib}"></div></div>
+    <div class="f3"><div class="field"><label for="gh">Hidratos g</label><input id="gh" inputmode="numeric" value="${g.hc||245}"></div>
+    <div class="field"><label for="gfa">Grasas g</label><input id="gfa" inputmode="numeric" value="${g.fat||80}"></div><div></div></div>
+    <div class="f3"><div class="field"><label for="gw">Agua L</label><input id="gw" inputmode="decimal" value="${fmt1(g.water/1000)}"></div>
+    <div class="field"><label for="gs">Pasos</label><input id="gs" inputmode="numeric" value="${g.steps}"></div><div></div></div>
+    <div class="field"><label for="gst">Inicio del proceso (semana 1)</label><input id="gst" type="date" value="${g.start||DEF_GOALS.start}"></div>
+    <div class="btnrow"><button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="goalsSave">Guardar</button></div>`);
+}
+function clRows(){
+  return sheetCtx.items.map((c,i)=>`<div class="clrow"><div class="top"><input id="cl-${i}" value="${esc(c.label)}" aria-label="Tarea"><button class="del" data-act="clDel" data-i="${i}" aria-label="Borrar tarea">×</button></div>
+    <div class="days">${DOW.map(([n,l])=>`<button data-act="clDay" data-i="${i}" data-v="${n}" class="${!c.days||!c.days.length||c.days.includes(n)?'on':''}" aria-label="${l}">${l}</button>`).join('')}</div></div>`).join('');
+}
+function openCl(){
+  openSheet(`<h3>Editar checklist</h3><p class="empty" style="margin-top:-8px">Marca los días en que aparece cada tarea. El agua se controla aparte con tu objetivo.</p>
+    <div id="clList">${''}</div>
+    <div class="btnrow"><button class="btn" data-act="clAdd">+ Tarea</button></div>
+    <div class="btnrow"><button class="btn" data-act="close">Cancelar</button><button class="btn pri" data-act="clSave">Guardar</button></div>`,{items:S.checklist.map(c=>({...c,days:c.days?[...c.days]:null}))});
+  document.getElementById('clList').innerHTML=clRows();
+}
+function clSync(){sheetCtx.items.forEach((c,i)=>{const e=document.getElementById('cl-'+i);if(e)c.label=e.value})}
+
+/* ---------- acciones ---------- */
+const A={
+  tab:t=>{S.tab=t.dataset.v;if(S.tab==='inicio')S.quote=pickQuote();render();scrollTo(0,0)},
+  qnext:()=>{S.quote=pickQuote();render()},
+  photo:openPhoto, scan:openScan, phGo:()=>phGo(), scGo:()=>scGo(),
+  aiStop:()=>{if(sheetCtx&&sheetCtx.ctl)sheetCtx.ctl.abort()},
+  estDel:t=>{estSync();sheetCtx.items.splice(Number(t.dataset.i),1);renderEst()},
+  phAdd:()=>{estSync();const slot=val('phSlot'),it=sheetCtx.items.filter(x=>x.name.trim());closeSheet();
+    updDay(d=>it.forEach(x=>d.meals.push({id:uid('m'),foodId:x.foodId,name:x.name.trim(),qty:x.qty||1,slot,kcal:x.kcal,p:x.p,hc:x.hc||0,gr:x.gr||0,fib:x.fib,ai:true})),today());
+    toast(`${it.length} ${it.length===1?'alimento añadido':'alimentos añadidos'} a hoy`)},
+  wReset:()=>{const w=day(today()).water||0;if(!w)return;document.getElementById('wreset').innerHTML=`<div class="warn" role="alert"><b>⚠ ¿Resetear el agua de hoy?</b><span>Se borrarán los ${fmt1(w/1000)} L que llevas registrados y el contador volverá a 0.</span><div class="btnrow"><button class="btn" data-act="wResetNo">Cancelar</button><button class="btn danger-fill" data-act="wResetYes">Sí, resetear</button></div></div>`},
+  wResetNo:()=>{document.getElementById('wreset').innerHTML=wResetBtn(day(today()).water||0)},
+  wResetYes:()=>{const tk=today(),prev=day(tk).water||0;updDay(d=>{d.water=0},tk);
+    toast(`Agua de hoy reseteada (${fmt1(prev/1000)} L)`,{label:'Deshacer',fn:()=>updDay(d=>{d.water=prev},tk)})},
+  goDay:t=>{S.date=t.dataset.v;S.tab='hoy';render();scrollTo(0,0)},
+  bkSave:()=>bkSave(),
+  bkNo:()=>{S.pendingRestore=null;document.getElementById('bkOut').innerHTML=''},
+  bkYes:()=>bkApply(),
+  bkCopy:()=>{const t=document.getElementById('bkTxt');if(!t)return;const done=()=>toast('Copiado');try{navigator.clipboard.writeText(t.value).then(done,()=>{t.select();toast('Selecciona y copia el texto')})}catch(e){t.select()}},
+  retryImg:()=>{setNoImg(false);openPhoto()},
+  goImport:()=>{S.tab='progreso';render();setTimeout(()=>{const b=document.getElementById('bkIn');b&&b.scrollIntoView({block:'center'});b&&b.click()},50)},
+  aiSave:()=>{try{const k=val('aiK').trim();k?localStorage.setItem('midia:_aiKey',k):localStorage.removeItem('midia:_aiKey');localStorage.setItem('midia:_aiModel',val('aiM'))}catch(e){}toast('Clave guardada en este dispositivo')},
+  aiTestGo:async()=>{A.aiSave();const o=document.getElementById('aiTest');o.innerHTML='<div class="thinking"><i></i><span>Probando…</span></div>';
+    try{await aiCall('Responde solo: ok',{max:5});o.innerHTML='<p class="note" style="color:var(--ok)">La clave funciona.</p>'}catch(e){o.innerHTML=`<p class="note" style="color:var(--warn)">${esc(aiErr(e)||'Error')}</p>`}},
+  logout:()=>logout(),
+  bkPick:()=>document.getElementById('bkIn')&&document.getElementById('bkIn').click(),
+  toastAct:()=>{const f=toast._fn;document.getElementById('toastHost').innerHTML='';toast._fn=null;if(f)f()},
+  prev:()=>{S.date=addDays(S.date,-1);render()},
+  next:()=>{if(S.date<today()){S.date=addDays(S.date,1);render()}},
+  today:(t,e)=>{e.preventDefault();S.date=today();render()},
+  close:closeSheet,
+  water:t=>updDay(d=>{d.water=Math.max(0,(d.water||0)+Number(t.dataset.v))}),
+  chk:t=>updDay(d=>{const id=t.dataset.id;if(d.checks[id])delete d.checks[id];else d.checks[id]=true}),
+  addFood:t=>{const f=S.foods.find(x=>x.id===t.dataset.id);if(!f)return;if(f.kcal==null)openFoodEdit(f.id,true);else openQty(f)},
+  q:t=>{sheetCtx.qty=Number(t.dataset.v);document.querySelectorAll('#qseg button').forEach(b=>b.classList.toggle('on',b===t))},
+  qtyAdd:()=>{const {food:f,qty}=sheetCtx;const slot=val('qslot'),g=num(val('qg'));closeSheet();
+    const o=portion(f,qty,g&&g>0?g:null);
+    updDay(d=>d.meals.push({id:uid('m'),foodId:f.id,name:f.name,slot,...o}));toast(`${f.name} añadido`)},
+  fcat:t=>{S.fcat=t.dataset.v;S.fq='';render()},
+  howDay:()=>howDay(),
+  aiMem:()=>openAiMem(),
+  aiMemSave:()=>{const lines=id=>val(id).split('\n').map(x=>x.trim()).filter(Boolean);S.ai={rules:lines('am-r'),typical:lines('am-t'),notes:lines('am-n')};save('cfg/ai',S.ai);closeSheet();toast('Memoria de la IA guardada')},
+  delMeal:t=>updDay(d=>{d.meals=d.meals.filter(m=>m.id!==t.dataset.id)}),
+  foods:openFoods,
+  foodNew:()=>openFoodEdit(null,false),
+  foodEdit:t=>openFoodEdit(t.dataset.id,false),
+  foodSave:()=>{const v=readFood();if(!v.name||v.kcal==null){toast('Pon al menos nombre y kcal');return}
+    const {id,thenAdd,extra}=sheetCtx;let f;
+    if(id){f=S.foods.find(x=>x.id===id);Object.assign(f,v);if(f.kcal!=null)delete f.pantry}else{f={id:uid('f'),...v,...(extra||{})};S.foods.push(f)}
+    if(extra){saveFoods();closeSheet();render();toast(`${f.name} guardado en tus alimentos`);return}
+    saveFoods();render();if(thenAdd)openQty(f);else openFoods()},
+  foodDel:()=>{if(sheetCtx.confirm!==true){sheetCtx.confirm=true;const b=document.querySelector('[data-act="foodDel"]');b.textContent='¿Seguro? Toca otra vez';return}
+    S.foods=S.foods.filter(x=>x.id!==sheetCtx.id);saveFoods();render();openFoods()},
+  manual:openManual,
+  manualSave:()=>{const v=readFood();if(!v.name||v.kcal==null){toast('Pon al menos nombre y kcal');return}
+    const slot=val('mslot'),keep=document.getElementById('mkeep').checked;let fid=null;
+    if(keep){const f={id:uid('f'),freq:'habitual',...v};S.foods.push(f);fid=f.id;saveFoods()}
+    closeSheet();updDay(d=>d.meals.push({id:uid('m'),foodId:fid,name:v.name,qty:1,slot,kcal:v.kcal,p:v.p||0,hc:v.hc||0,gr:v.gr||0,fib:v.fib||0}));toast(`${v.name} añadido`)},
+  steps:t=>updDay(d=>{d.steps=(d.steps||0)+Number(t.dataset.v)}),
+  workout:t=>openWorkout(t.dataset.v),
+  wSave:()=>{const w={id:uid('w'),type:sheetCtx.type,name:val('wn').trim(),min:num(val('wm'))||0,kcal:num(val('wk'))||0,note:val('wo').trim()};
+    if(!w.min&&!w.name){toast('Pon al menos los minutos');return}closeSheet();updDay(d=>d.workouts.push(w));toast('Entreno guardado')},
+  delW:t=>updDay(d=>{d.workouts=d.workouts.filter(w=>w.id!==t.dataset.id)}),
+  goals:openGoals,
+  goalsSave:()=>{const g={kcal:num(val('gk'))||DEF_GOALS.kcal,p:num(val('gp'))||DEF_GOALS.p,fib:num(val('gf'))||DEF_GOALS.fib,hc:num(val('gh'))||DEF_GOALS.hc,fat:num(val('gfa'))||DEF_GOALS.fat,water:Math.round((num(val('gw'))||3)*1000),steps:num(val('gs'))||DEF_GOALS.steps,start:/^\d{4}-\d{2}-\d{2}$/.test(val('gst'))?val('gst'):(S.goals.start||DEF_GOALS.start)};
+    S.goals=g;save('cfg/goals',g);closeSheet();render();toast('Objetivos guardados')},
+  clEdit:openCl,
+  clAdd:()=>{clSync();sheetCtx.items.push({id:uid('c'),label:'',days:null});document.getElementById('clList').innerHTML=clRows();const e=document.getElementById('cl-'+(sheetCtx.items.length-1));e&&e.focus()},
+  clDel:t=>{clSync();sheetCtx.items.splice(Number(t.dataset.i),1);document.getElementById('clList').innerHTML=clRows()},
+  clDay:t=>{clSync();const c=sheetCtx.items[Number(t.dataset.i)],n=Number(t.dataset.v);let ds=c.days&&c.days.length?[...c.days]:[0,1,2,3,4,5,6];
+    ds=ds.includes(n)?ds.filter(x=>x!==n):[...ds,n];c.days=ds.length===7?null:ds;if(!ds.length)c.days=[n===1?2:1];document.getElementById('clList').innerHTML=clRows()},
+  clSave:()=>{clSync();S.checklist=sheetCtx.items.filter(c=>c.label.trim()).map(c=>({...c,label:c.label.trim()}));save('cfg/checklist',{items:S.checklist});closeSheet();render();toast('Checklist guardada')}
+};
+document.addEventListener('submit',e=>{if(e.target&&e.target.id==='lgForm')doLogin(e)});
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t)return;const f=A[t.dataset.act];if(f)f(t,e)});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='bkIn'){const f=t.files&&t.files[0];if(f)bkRead(f);t.value='';return}
+  if((t.id==='phIn'||t.id==='scIn')&&sheetCtx){const fs=[...(t.files||[])].slice(0,t.id==='scIn'?2:1);if(!fs.length)return;sheetCtx.files=fs;
+    document.getElementById(t.id==='phIn'?'phZone':'scZone').innerHTML=zoneHtml(fs);return}
+  if(!t.dataset||!t.dataset.chg)return;
+  if(t.dataset.chg==='steps'){const v=Math.max(0,Math.round(num(t.value)||0));updDay(d=>{d.steps=v})}
+  if(t.dataset.chg==='weight'){const v=num(t.value);updDay(d=>{d.weight=v&&v>30&&v<400?v:null;const c=S.checklist.find(x=>x.weigh);if(c){if(d.weight!=null)d.checks[c.id]=true}});if(v)toast('Peso guardado')}
+});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='fq'){S.fq=t.value;const g=document.getElementById('fgrid');if(g)g.innerHTML=gridHtml();document.querySelectorAll('.chips button').forEach(b=>b.classList.toggle('on',!S.fq&&b.dataset.v===S.fcat))}
+  if(t.id==='mfq'){document.getElementById('mfl').innerHTML=foodsRows(t.value)}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetCtx)closeSheet()});
+// cambio de día a medianoche si la app sigue abierta
+let lastToday=today();setInterval(()=>{const t=today();if(t!==lastToday){if(S.date===lastToday)S.date=t;lastToday=t;render()}
+  if(slotNow()!==S.quote.slot&&!sheetCtx){S.quote=pickQuote();if(S.tab==='inicio')render()}},60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S.tab==='inicio'&&!sheetCtx&&!S.anim){S.quote=pickQuote();render()}});
+
+loadLocal();render();connect();
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&sess)pull()});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+})();
+</script>
+
+</body>
+</html>
